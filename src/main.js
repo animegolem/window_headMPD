@@ -219,7 +219,9 @@ root.addEventListener(
   true,
 );
 root.addEventListener('pointerdown', (e) => {
-  if (e.button === 0 && e.target === root) win.startDragging();
+  // With the art itself click-transparent, a press on bare head lands on its
+  // container.
+  if (e.button === 0 && (e.target === root || e.target === head)) win.startDragging();
 });
 
 const viz = new Viz(canvas, (title) => {
