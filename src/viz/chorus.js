@@ -137,12 +137,17 @@ export class Chorus {
     this.peakFor = peak ? this.peakFor + dt : Math.max(0, this.peakFor - dt * 2);
     this.ghostFade = follow(this.ghostFade, this.peakFor > 0.6 ? 1 : 0, dt, 1.5, 0.8);
     const g = this.ghostFade;
+    // It hums along faintly with the ring (a little light, a little mouth),
+    // and only comes fully up on the yell.
+    const ring = this.faces.reduce((sum, f) => sum + f.open, 0) / N;
+    this.hum = follow(this.hum ?? 0, ring, dt, 4, 2);
+    const lit = g + (1 - g) * this.hum * 0.18;
     // A fixed colour like the orbs', kept deep in shadow until it yells.
-    this.ghostRest.copy(this.ghostPeak).multiplyScalar(0.12);
-    this.ghostU.uColor.value.copy(this.ghostRest).lerp(this.ghostPeak, g);
+    this.ghostRest.copy(this.ghostPeak).multiplyScalar(0.06);
+    this.ghostU.uColor.value.copy(this.ghostRest).lerp(this.ghostPeak, lit);
     const exhale = Math.max(0, -Math.sin(this.t * 1.5));
     this.ghostU.uSwell.value = Math.max(0, Math.sin(this.t * 1.5)) * (1 - g);
-    this.ghostU.uExpr.value.set(Math.max(0.03 + exhale * 0.1, g), g, 0.75 * g, g);
+    this.ghostU.uExpr.value.set(Math.max(0.03 + exhale * 0.1, this.hum * 0.3, g), g, 0.75 * g, g);
     const shake = g * 0.02;
     this.ghostU.uJitter.value.set((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
     this.ghost.rotation.set(-0.08, Math.sin(this.t * 0.4) * 0.1, 0);
