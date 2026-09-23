@@ -172,6 +172,21 @@ body {
   pointer-events: none;
 }
 
+/* Subtitle strip, like the one under anthrupad's video. */
+#caption {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  background: rgba(200, 200, 200, 0.92);
+  color: #111;
+  font: 15px/18px Helvetica, Arial, sans-serif;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 #presetTitle {
   position: absolute;
   left: 30px;

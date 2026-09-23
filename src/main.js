@@ -169,6 +169,8 @@ const nowPlaying = el('div', screen);
 nowPlaying.id = 'nowPlaying';
 const notice = el('div', screen);
 notice.id = 'notice';
+const caption = el('div', screen, { cls: 'hidden' });
+caption.id = 'caption';
 
 // Visualization chooser, sliding down from behind the brow (zIndex -1).
 const VIS_CLOSED = 33;
@@ -227,7 +229,7 @@ root.addEventListener('pointerdown', (e) => {
 const viz = new Viz(canvas, (title) => {
   presetTitle.textContent = title;
   presetTitle.title = title;
-});
+}, caption);
 canvas.addEventListener('click', () => viz.step(1));
 
 button(visDrop, {

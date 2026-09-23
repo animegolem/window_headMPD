@@ -8,6 +8,8 @@ import { PointCloud } from './cloud.js';
 import { Ring } from './ring.js';
 import { Warp } from './warp.js';
 import { Ribbon } from './ribbon.js';
+import { Chorus } from './chorus.js';
+import { Breath } from './breath.js';
 
 export const W = 216;
 export const H = 158;
@@ -17,7 +19,7 @@ const N_BANDS = 64;
 const DEFAULT_PALETTE = ['#ff2020', '#e0307a', '#8a3cff', '#3a6bff'];
 
 export class Viz {
-  presets = [PointCloud, Ring, Warp, Ribbon].map((P) => new P());
+  presets = [PointCloud, Chorus, Breath, Ring, Warp, Ribbon].map((P) => new P());
   audio = {
     bands: new Float32Array(N_BANDS),
     wave: new Float32Array(256),
@@ -34,7 +36,8 @@ export class Viz {
   #target = { colors: DEFAULT_PALETTE.map((c) => new THREE.Color(c)), bg: new THREE.Color('#000000') };
   #bassAvg = 0;
 
-  constructor(canvas, onPresetChange) {
+  constructor(canvas, onPresetChange, captionEl = null) {
+    this.captionEl = captionEl;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(W, H, false);
@@ -47,9 +50,13 @@ export class Viz {
     this.current.enter(this);
     onPresetChange(this.current.title);
 
-    const ch = new Channel();
-    ch.onmessage = (f) => this.#feed(f);
-    invoke('audio_subscribe', { onFrame: ch }).catch((e) => console.warn('audio', e));
+    try {
+      const ch = new Channel();
+      ch.onmessage = (f) => this.feed(f);
+      invoke('audio_subscribe', { onFrame: ch }).catch((e) => console.warn('audio', e));
+    } catch {
+      // Outside Tauri (tools/facelab.html): the caller feeds frames itself.
+    }
 
     this.clock = new THREE.Clock();
     this.renderer.setAnimationLoop(() => this.#tick());
@@ -59,8 +66,15 @@ export class Viz {
     return this.presets[this.index];
   }
 
+  /** Text over the screen, for presets that talk. null hides it. */
+  setCaption(text) {
+    if (!this.captionEl) return;
+    this.captionEl.textContent = text ?? '';
+    this.captionEl.classList.toggle('hidden', !text);
+  }
+
   step(dir) {
-    this.current.leave?.();
+    this.current.leave?.(this);
     this.index = (this.index + dir + this.presets.length) % this.presets.length;
     try {
       localStorage.setItem('preset', String(this.index));
@@ -97,7 +111,7 @@ export class Viz {
     this.#target.bg.set(darkest.hex).multiplyScalar(0.25);
   }
 
-  #feed(f) {
+  feed(f) {
     const a = this.audio;
     a.bands.set(f.bands);
     a.wave.set(f.wave);
@@ -130,7 +144,7 @@ export class Viz {
     this.palette.bg.lerp(this.#target.bg, k);
     this.audio.beat = Math.max(0, this.audio.beat - dt * 4);
     this.current.update(dt, this);
-    this.renderer.setClearColor(this.palette.bg);
+    this.renderer.setClearColor(this.current.clear ?? this.palette.bg);
     this.renderer.render(this.current.scene, this.current.camera);
   }
 }

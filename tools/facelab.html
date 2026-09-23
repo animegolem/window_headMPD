@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  Preset bench: renders one visualization outside Tauri with synthetic audio,
+  big enough to judge. Served by `npm run dev`:
+
+    http://localhost:1420/tools/facelab.html?preset=1&mood=sing
+
+  preset = index into Viz.presets; mood = quiet | sing | beat | scream | peak.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>facelab</title>
+    <style>
+      body { margin: 0; background: #222; }
+      #screen { position: relative; width: 216px; height: 158px; transform: scale(3); transform-origin: 0 0; }
+      canvas { display: block; }
+      #caption { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 0 5px;
+        background: rgba(200, 200, 200, 0.92); color: #111; font: 15px/18px Helvetica, Arial, sans-serif; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="screen"><canvas id="c" style="width: 216px; height: 158px"></canvas><div id="caption" class="hidden"></div></div>
+    <script type="module">
+      import { Viz } from '/src/viz/index.js';
+      const q = new URLSearchParams(location.search);
+      localStorage.setItem('preset', q.get('preset') ?? '0');
+      const viz = new Viz(document.getElementById('c'), () => {}, document.getElementById('caption'));
+      viz.renderer.setPixelRatio(Number(q.get("dpr") ?? 2));
+      viz.renderer.setSize(216, 158, false);
+      const mood = q.get('mood') ?? 'sing';
+      const t0 = performance.now();
+      setInterval(() => {
+        const t = (performance.now() - t0) / 1000;
+        const loud = { quiet: 0.2, sing: 0.5, beat: 0.5, scream: 0.35 + Math.min(0.5, t * 0.2), peak: t < 2 ? 0.25 : 0.75 }[mood];
+        const bands = Array.from({ length: 64 }, (_, i) => {
+          // A melody wandering through the bands, so singers take turns.
+          const centre = 32 + 26 * Math.sin(t * 1.3);
+          const tone = Math.exp(-(((i - centre) / 6) ** 2)) * 0.45;
+          const kick = mood === 'beat' && t % 0.5 < 0.08 && i < 8 ? 0.5 : 0;
+          return Math.min(1, loud * (1 - i / 128) + tone + kick);
+        });
+        const wave = Array.from({ length: 256 }, (_, i) => Math.sin(i * 0.2 + t * 9) * loud * 0.5);
+        viz.feed({ bands, wave, level: loud * 0.3 });
+      }, 16);
+    </script>
+  </body>
+</html>
