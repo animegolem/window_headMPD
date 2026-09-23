@@ -2,7 +2,7 @@
 // the spectrum. A face's mouth opens when its band rises above its own recent
 // average, so they trade lines like a choir instead of all gaping at once;
 // when the whole mix surges, everybody sings. Singers go pale and bright.
-// Behind the ring the Breath face waits, a shade off the background,
+// Behind the ring the Breath face waits, its blue darkened almost to black,
 // breathing; hold the surge at the song's peak and it brightens and screams.
 
 import * as THREE from 'three';
@@ -137,8 +137,8 @@ export class Chorus {
     this.peakFor = peak ? this.peakFor + dt : Math.max(0, this.peakFor - dt * 2);
     this.ghostFade = follow(this.ghostFade, this.peakFor > 0.6 ? 1 : 0, dt, 1.5, 0.8);
     const g = this.ghostFade;
-    // At rest it's the background, lifted just enough for the relief to read.
-    this.ghostRest.copy(viz.palette.bg).multiplyScalar(1.5).addScalar(0.01);
+    // A fixed colour like the orbs', kept deep in shadow until it yells.
+    this.ghostRest.copy(this.ghostPeak).multiplyScalar(0.12);
     this.ghostU.uColor.value.copy(this.ghostRest).lerp(this.ghostPeak, g);
     const exhale = Math.max(0, -Math.sin(this.t * 1.5));
     this.ghostU.uSwell.value = Math.max(0, Math.sin(this.t * 1.5)) * (1 - g);
