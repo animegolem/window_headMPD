@@ -6,9 +6,11 @@ import './style.css';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { el, image, button, buttonGroup, slider } from './widgets.js';
-import { player, songTitle } from './player.js';
+import { player, songTitle, mpd } from './player.js';
 import { buildPlaylist } from './playlist.js';
 import { Viz } from './viz/index.js';
+import { runDemo } from './demo.js';
+import { listen } from '@tauri-apps/api/event';
 
 const win = getCurrentWindow();
 
@@ -32,6 +34,8 @@ const store = {
     } catch {}
   },
 };
+
+let zoom = store.get('zoom', 1);
 
 /** Skin chrome that isn't a control drags the window, as in WMP. */
 function draggable(...nodes) {
@@ -236,7 +240,7 @@ button(visDrop, {
   x: 9, y: 3, up: 'viz_drop_l_01_default', hover: 'viz_drop_l_02_rollover', down: 'viz_drop_l_03_down',
   disabled: 'viz_drop_l_04_disabled', title: 'Previous visualization', onClick: () => viz.step(-1),
 });
-button(visDrop, {
+const visNext = button(visDrop, {
   x: 135, y: 3, up: 'viz_drop_r_01_default', hover: 'viz_drop_r_02_rollover', down: 'viz_drop_r_03_down',
   disabled: 'viz_drop_r_04_disabled', title: 'Next visualization', onClick: () => viz.step(1),
 });
@@ -356,7 +360,6 @@ visDrop.addEventListener('transitionend', () => {
 
 // ---- zoom + click-through mask ---------------------------------------------------
 
-let zoom = store.get('zoom', 1);
 
 function setZoom(z) {
   zoom = z;
@@ -478,6 +481,49 @@ window.addEventListener('keydown', (e) => {
   e.preventDefault();
 });
 window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// ---- demo tour (see demo.js) -------------------------------------------------------
+
+function setEq(gains) {
+  eqGains = [...gains];
+  bands.forEach((b, i) => (b.value = eqGains[i]));
+  sendEq();
+  store.set('eq', eqGains);
+}
+
+let demoRunning = false;
+listen('mpd-message', ({ payload }) => {
+  const [cmd, ...rest] = String(payload).split(' ');
+  if (cmd !== 'demo' || demoRunning) return;
+  demoRunning = true;
+  const wav = rest.join(' ') || '/tmp/window_headmpd-demo.wav';
+  runDemo(
+    {
+      root,
+      zoom: () => zoom,
+      player,
+      viz,
+      mpd,
+      ui: {
+        transport: transport.node,
+        plHandle: plHandle.node,
+        eqHandle: eqHandle.node,
+        visNext: visNext.node,
+        reset,
+        bands,
+        getEq: () => [...eqGains],
+        setEq,
+        toggleEq,
+        togglePl,
+        toggleVis,
+        isOpen: { eq: () => eqOpen, pl: () => plOpen, vis: () => visOpen },
+      },
+    },
+    wav,
+  )
+    .catch((e) => report(`demo failed: ${e?.stack ?? e}`))
+    .finally(() => (demoRunning = false));
+});
 
 // ---- boot ------------------------------------------------------------------------
 

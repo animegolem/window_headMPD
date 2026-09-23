@@ -9,7 +9,6 @@ import { Ring } from './ring.js';
 import { Warp } from './warp.js';
 import { Ribbon } from './ribbon.js';
 import { Chorus } from './chorus.js';
-import { Breath } from './breath.js';
 
 export const W = 216;
 export const H = 158;
@@ -19,7 +18,9 @@ const N_BANDS = 64;
 const DEFAULT_PALETTE = ['#ff2020', '#e0307a', '#8a3cff', '#3a6bff'];
 
 export class Viz {
-  presets = [PointCloud, Chorus, Breath, Ring, Warp, Ribbon].map((P) => new P());
+  // Breath (breath.js) isn't in the rotation on its own: its face lives
+  // behind the Chorus ring.
+  presets = [PointCloud, Chorus, Ring, Warp, Ribbon].map((P) => new P());
   audio = {
     bands: new Float32Array(N_BANDS),
     wave: new Float32Array(256),

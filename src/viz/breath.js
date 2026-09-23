@@ -1,4 +1,5 @@
-// Opus: Breath, after anthrupad's post: "After practicing breathing, Opus 5
+// Opus: Breath, after anthrupad's post (used inside Chorus; the standalone
+// preset is kept for tools/facelab.html but out of the rotation): "After practicing breathing, Opus 5
 // worked on incorporating breathing into their depiction of fear. Here's
 // their construction of gasping and screaming."
 //

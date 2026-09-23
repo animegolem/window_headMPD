@@ -21,7 +21,7 @@ use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::ipc::Channel;
@@ -70,6 +70,11 @@ pub struct Engine {
     playing_out: AtomicBool,
     subscriber: Mutex<Option<Channel<Frame>>>,
     mode: Mutex<Mode>,
+    /// Device sample rate, once the output stream is open.
+    out_rate: AtomicU32,
+    /// Interleaved stereo of exactly what went to the speakers, silence
+    /// included, while a recording is running (the demo video's soundtrack).
+    rec: Mutex<Option<Vec<f32>>>,
 }
 
 impl Engine {
@@ -79,6 +84,51 @@ impl Engine {
 
     pub fn subscribe(&self, ch: Channel<Frame>) {
         *self.subscriber.lock().unwrap() = Some(ch);
+    }
+
+    pub fn record_start(&self) -> Result<(), String> {
+        if self.mode() != Mode::Output {
+            return Err("recording needs output mode".into());
+        }
+        *self.rec.lock().unwrap() = Some(Vec::with_capacity(48_000 * 2 * 60));
+        Ok(())
+    }
+
+    /// Stop recording and write a 16-bit stereo WAV.
+    pub fn record_stop(&self, path: &Path) -> Result<(), String> {
+        let samples = self.rec.lock().unwrap().take().ok_or("not recording")?;
+        write_wav(path, self.out_rate.load(Ordering::Relaxed), &samples).map_err(|e| e.to_string())
+    }
+}
+
+fn write_wav(path: &Path, rate: u32, samples: &[f32]) -> std::io::Result<()> {
+    use std::io::Write;
+    let data_len = (samples.len() * 2) as u32;
+    let mut out = Vec::with_capacity(44 + data_len as usize);
+    out.extend_from_slice(b"RIFF");
+    out.extend_from_slice(&(36 + data_len).to_le_bytes());
+    out.extend_from_slice(b"WAVEfmt ");
+    out.extend_from_slice(&16u32.to_le_bytes());
+    out.extend_from_slice(&1u16.to_le_bytes()); // PCM
+    out.extend_from_slice(&2u16.to_le_bytes()); // stereo
+    out.extend_from_slice(&rate.to_le_bytes());
+    out.extend_from_slice(&(rate * 4).to_le_bytes());
+    out.extend_from_slice(&4u16.to_le_bytes());
+    out.extend_from_slice(&16u16.to_le_bytes());
+    out.extend_from_slice(b"data");
+    out.extend_from_slice(&data_len.to_le_bytes());
+    for s in samples {
+        out.extend_from_slice(&((s.clamp(-1.0, 1.0) * 32767.0) as i16).to_le_bytes());
+    }
+    File::create(path)?.write_all(&out)
+}
+
+fn record(engine: &Engine, out: &[f32], channels: usize) {
+    if let Some(rec) = engine.rec.lock().unwrap().as_mut() {
+        for f in out.chunks(channels) {
+            rec.push(f[0]);
+            rec.push(if channels > 1 { f[1] } else { f[0] });
+        }
     }
 }
 
@@ -96,6 +146,8 @@ pub fn start() -> (Arc<Engine>, Option<cpal::Stream>) {
         playing_out: AtomicBool::new(false),
         subscriber: Mutex::new(None),
         mode: Mutex::new(Mode::Monitor),
+        out_rate: AtomicU32::new(0),
+        rec: Mutex::new(None),
     });
 
     let stream = match open_output(engine.clone()) {
@@ -228,6 +280,7 @@ fn open_output(engine: Arc<Engine>) -> Result<cpal::Stream, String> {
     let config: cpal::StreamConfig = config.into();
     let channels = config.channels as usize;
     let out_rate = config.sample_rate as f32;
+    engine.out_rate.store(config.sample_rate, Ordering::Relaxed);
     let base_step = IN_RATE / out_rate;
 
     // Cubic interpolation history: [x(-1), x0, x1, x2].
@@ -248,6 +301,8 @@ fn open_output(engine: Arc<Engine>) -> Result<cpal::Stream, String> {
                 }
                 if !primed {
                     out.fill(0.0);
+                    drop(ring);
+                    record(&engine, out, channels);
                     return;
                 }
                 let err = (fill as f32 - TARGET_FRAMES as f32) / TARGET_FRAMES as f32;
@@ -280,6 +335,7 @@ fn open_output(engine: Arc<Engine>) -> Result<cpal::Stream, String> {
                 }
                 drop(eq);
                 drop(ring);
+                record(&engine, out, channels);
                 push_tap(&engine, tap_buf.iter().copied());
             },
             |e| eprintln!("[audio] stream error: {e}"),

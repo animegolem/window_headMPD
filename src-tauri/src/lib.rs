@@ -64,6 +64,8 @@ fn idle_loop(handle: AppHandle) {
             routed = true;
         }
         let _ = handle.emit("mpd-connection", true);
+        // A remote control channel: `mpc sendmessage window_head demo`.
+        let _ = conn.command(&["subscribe", "window_head"]);
         loop {
             match conn.command(&["idle"]) {
                 Ok(Ok(pairs)) => {
@@ -72,6 +74,13 @@ fn idle_loop(handle: AppHandle) {
                         .filter(|(k, _)| k == "changed")
                         .map(|(_, v)| v)
                         .collect();
+                    if changed.iter().any(|c| c == "message") {
+                        if let Ok(Ok(msgs)) = conn.command(&["readmessages"]) {
+                            for (_, text) in msgs.into_iter().filter(|(k, _)| k == "message") {
+                                let _ = handle.emit("mpd-message", text);
+                            }
+                        }
+                    }
                     let _ = handle.emit("mpd-idle", changed);
                 }
                 Ok(Err(_)) => continue,
@@ -123,6 +132,16 @@ fn set_eq(app: State<'_, App>, gains: [f32; 10]) {
 #[tauri::command]
 fn set_balance(app: State<'_, App>, balance: f32) {
     app.engine.eq.lock().unwrap().set_balance(balance);
+}
+
+#[tauri::command]
+fn record_start(app: State<'_, App>) -> Result<(), String> {
+    app.engine.record_start()
+}
+
+#[tauri::command]
+fn record_stop(app: State<'_, App>, path: String) -> Result<(), String> {
+    app.engine.record_stop(std::path::Path::new(&path))
 }
 
 #[derive(Serialize)]
@@ -240,6 +259,8 @@ pub fn run() {
             set_hit_mask,
             set_capture,
             js_log,
+            record_start,
+            record_stop,
         ])
         .build(tauri::generate_context!())
         .expect("error while building window_headMPD");

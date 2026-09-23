@@ -59,7 +59,11 @@ export function button(parent, { x, y, up, hover, down, disabled, title, onClick
     if (isDisabled || e.button !== 0) return;
     e.stopPropagation();
     isDown = true;
-    n.setPointerCapture(e.pointerId);
+    try {
+      n.setPointerCapture(e.pointerId);
+    } catch {
+      // Synthetic events (the demo tour) have no real pointer to capture.
+    }
     paint();
   });
   n.addEventListener('pointerup', (e) => {
@@ -172,7 +176,11 @@ export async function buttonGroup(parent, { x, y, map, up, hover, down, disabled
     if (i < 0 || disabledSet.has(i)) return;
     e.stopPropagation();
     pressed = i;
-    canvas.setPointerCapture(e.pointerId);
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {
+      // Synthetic events (the demo tour) have no real pointer to capture.
+    }
     restate();
   });
   canvas.addEventListener('pointerup', (e) => {
@@ -271,7 +279,11 @@ export function slider(parent, opts) {
     e.stopPropagation();
     dragging = true;
     capture(true);
-    box.setPointerCapture(e.pointerId);
+    try {
+      box.setPointerCapture(e.pointerId);
+    } catch {
+      // Synthetic events (the demo tour) have no real pointer to capture.
+    }
     value = fromEvent(e);
     place();
     paintThumb();

@@ -366,3 +366,9 @@ body {
   background: var(--win-select);
   color: #fff;
 }
+
+/* The demo tour draws its own cursor. */
+body.demo,
+body.demo * {
+  cursor: none !important;
+}

@@ -8,3 +8,4 @@ src-tauri/gen/
 # by `npm run skin`, never committed.
 public/skin/
 src-tauri/icons/
+*.mp4
