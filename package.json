@@ -1,0 +1,20 @@
+{
+  "name": "window_headmpd",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "skin": "python3 tools/convert_skin.py && tauri icon src-tauri/icons/app-icon.png -o src-tauri/icons",
+    "dev": "vite",
+    "build": "vite build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "vite": "^7"
+  }
+}

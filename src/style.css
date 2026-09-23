@@ -1,0 +1,353 @@
+/* The whole app is one 760x394 skin on a transparent window. Everything is
+   absolutely positioned in skin pixels, exactly as headspace.wms lays it out. */
+
+:root {
+  --drawer: #285f03;
+  --label: #77ce07;
+  --row-now: #a9ff2b;
+  --row-sel: #1c4702;
+  --win-face: #d4d0c8;
+  --win-light: #ffffff;
+  --win-shadow: #808080;
+  --win-dark: #404040;
+  --win-select: #0a246a;
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  font: 9px Tahoma, Verdana, sans-serif;
+  -webkit-font-smoothing: none;
+}
+
+#skin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 760px;
+  height: 394px;
+  transform-origin: 0 0;
+}
+
+#skin img,
+#skin canvas {
+  position: absolute;
+  display: block;
+  -webkit-user-drag: none;
+  /* 2001 bitmaps on a Retina screen: keep every pixel square. */
+  image-rendering: pixelated;
+}
+
+#skin #viz {
+  image-rendering: auto;
+}
+
+.abs {
+  position: absolute;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Sliding drawers: WMP's moveto(..., 120). */
+.ear {
+  position: absolute;
+  transition: left 120ms linear;
+}
+
+#visDrop {
+  transition: top 120ms linear;
+}
+
+.panel {
+  position: absolute;
+  background: var(--drawer);
+  overflow: hidden;
+}
+
+/* ---- sliders ---- */
+
+.track {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.track.h {
+  height: 11px;
+  border-style: solid;
+  border-width: 0 7px;
+  border-image: url(/skin/horizontal_slider.png) 0 7 fill / 0 7px repeat;
+}
+
+.track.v {
+  width: 11px;
+  border-style: solid;
+  border-width: 7px 0;
+  border-image: url(/skin/vertical_slider.png) 7 0 fill / 7px 0 repeat;
+}
+
+.label {
+  position: absolute;
+  color: var(--label);
+  font-size: 9px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.freq {
+  position: absolute;
+  width: 15px;
+  text-align: center;
+  color: var(--label);
+  font-size: 7px;
+  letter-spacing: -0.3px;
+  pointer-events: none;
+}
+
+.link {
+  position: absolute;
+  color: #dddddd;
+  font-size: 9px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---- the screen ---- */
+
+#screen {
+  position: absolute;
+  overflow: hidden;
+}
+
+#viz {
+  -webkit-mask-image: url(/skin/vid_bkgd.png);
+  mask-image: url(/skin/vid_bkgd.png);
+  -webkit-mask-size: 216px 159px;
+  mask-size: 216px 159px;
+}
+
+#nowPlaying {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  color: #fff;
+  font: bold 10px Tahoma, Verdana, sans-serif;
+  text-shadow: 1px 1px 0 #000;
+  opacity: 0;
+  transition: opacity 600ms;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#nowPlaying .artist {
+  font-weight: normal;
+  opacity: 0.85;
+}
+
+#nowPlaying.show {
+  opacity: 1;
+}
+
+#notice {
+  position: absolute;
+  inset: 22px 14px;
+  color: var(--label);
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+#presetTitle {
+  position: absolute;
+  left: 30px;
+  top: 6px;
+  width: 105px;
+  text-align: center;
+  color: #000;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* ---- playlist drawer ---- */
+
+#plList {
+  position: absolute;
+  left: 2px;
+  top: 22px;
+  right: 2px;
+  bottom: 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: #fff;
+}
+
+.row {
+  display: flex;
+  height: 14px;
+  line-height: 14px;
+  padding-left: 2px;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.row .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row .time {
+  padding: 0 3px 0 6px;
+}
+
+.row.sel {
+  background: var(--row-sel);
+}
+
+.row.now {
+  color: var(--row-now);
+}
+
+.empty {
+  color: var(--label);
+  padding: 8px 4px;
+  font-size: 9px;
+}
+
+/* Windows 2000 scrollbar, because of course. */
+#plList::-webkit-scrollbar {
+  width: 13px;
+}
+
+#plList::-webkit-scrollbar-track {
+  background-color: #e9e7e3;
+  background-image: repeating-conic-gradient(var(--win-face) 0 25%, #ffffff 0 50%);
+  background-size: 2px 2px;
+}
+
+#plList::-webkit-scrollbar-thumb,
+#plList::-webkit-scrollbar-button {
+  background-color: var(--win-face);
+  box-shadow:
+    inset -1px -1px var(--win-dark),
+    inset 1px 1px #e8e6e1,
+    inset -2px -2px var(--win-shadow),
+    inset 2px 2px var(--win-light);
+}
+
+#plList::-webkit-scrollbar-button:single-button {
+  display: block;
+  height: 13px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+#plList::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M3.5 0 7 4H0z'/%3E%3C/svg%3E");
+}
+
+#plList::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0h7L3.5 4z'/%3E%3C/svg%3E");
+}
+
+/* Windows 2000 combo box for choosing a playlist. */
+#combo {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  right: 2px;
+  height: 18px;
+  box-sizing: border-box;
+  background: #fff;
+  box-shadow:
+    inset 1px 1px var(--win-shadow),
+    inset -1px -1px var(--win-light),
+    inset 2px 2px var(--win-dark),
+    inset -2px -2px var(--win-face);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  cursor: default;
+}
+
+#skin #combo .icon {
+  position: static;
+  width: 12px;
+  height: 12px;
+  margin: 0 3px 0 1px;
+  flex: none;
+}
+
+#combo .value {
+  flex: 1;
+  font-size: 11px;
+  line-height: 13px;
+  color: #fff;
+  background: var(--win-select);
+  padding: 0 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#combo .arrow {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-left: 1px;
+  background-color: var(--win-face);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0h7L3.5 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow:
+    inset -1px -1px var(--win-dark),
+    inset 1px 1px #e8e6e1,
+    inset -2px -2px var(--win-shadow),
+    inset 2px 2px var(--win-light);
+}
+
+#comboList {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 20px;
+  max-height: 112px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #000;
+  z-index: 10;
+}
+
+#comboList div {
+  font-size: 11px;
+  line-height: 14px;
+  padding: 0 3px;
+  color: #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#comboList div:hover {
+  background: var(--win-select);
+  color: #fff;
+}

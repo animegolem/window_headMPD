@@ -1,0 +1,25 @@
+[package]
+name = "window_head_mpd"
+version = "0.1.0"
+description = "An MPD frontend wearing the Windows Media Player 7 Headspace skin"
+edition = "2021"
+
+[lib]
+name = "window_head_mpd_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rustfft = "6"
+cpal = "0.18"
+libc = "0.2"
+# OKLab k-means palette engine, shared with RMPC-Auto-Theme.
+color-core = { git = "https://github.com/animegolem/color-tool-kmeans", rev = "5baa20e021855fbc57aebf48fa0f9b3374ded281" }
+
+[profile.dev.package."*"]
+opt-level = 2
