@@ -36,5 +36,5 @@ ffmpeg -hide_banner -loglevel error -y \
   -ss "$(( FLASH + PAD ))" -t $LEN -i "$WORK/raw.mov" \
   -ss $PAD -t $LEN -i "$WORK/sound.wav" \
   -map 0:v -map 1:a -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p \
-  -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:a aac -b:a 192k -movflags +faststart "$OUT"
+  -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -af "loudnorm=I=-16:TP=-1.5:LRA=11" -ar 48000 -c:a aac -b:a 192k -movflags +faststart "$OUT"
 echo "wrote $OUT"
