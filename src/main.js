@@ -5,6 +5,7 @@
 import './style.css';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
+import { Menu, MenuItem, CheckMenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu';
 import { el, image, button, buttonGroup, slider } from './widgets.js';
 import { player, songTitle, mpd } from './player.js';
 import { buildPlaylist } from './playlist.js';
@@ -480,7 +481,58 @@ window.addEventListener('keydown', (e) => {
   }
   e.preventDefault();
 });
-window.addEventListener('contextmenu', (e) => e.preventDefault());
+// Right-click, Control-click or Option-click: window options, as a native menu.
+let onTop = store.get('onTop', false);
+let allDesktops = store.get('allDesktops', false);
+function applyPins() {
+  win.setAlwaysOnTop(onTop).catch((e) => report(`always on top: ${e}`));
+  win.setVisibleOnAllWorkspaces(allDesktops).catch((e) => report(`all desktops: ${e}`));
+}
+async function windowMenu() {
+  const menu = await Menu.new({
+    items: [
+      await CheckMenuItem.new({
+        text: 'Keep on Top',
+        checked: onTop,
+        action: () => {
+          onTop = !onTop;
+          store.set('onTop', onTop);
+          applyPins();
+        },
+      }),
+      await CheckMenuItem.new({
+        text: 'Show on All Desktops',
+        checked: allDesktops,
+        action: () => {
+          allDesktops = !allDesktops;
+          store.set('allDesktops', allDesktops);
+          applyPins();
+        },
+      }),
+      await PredefinedMenuItem.new({ item: 'Separator' }),
+      await MenuItem.new({
+        text: zoom === 1 ? 'Larger Size' : 'Normal Size',
+        action: () => setZoom(zoom === 1 ? 1.5 : 1),
+      }),
+    ],
+  });
+  await menu.popup();
+}
+window.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  windowMenu().catch((err) => report(`menu: ${err}`));
+});
+// Capture on window so it beats the head's drag handler on #skin.
+window.addEventListener(
+  'pointerdown',
+  (e) => {
+    if (e.button !== 0 || !e.altKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    windowMenu().catch((err) => report(`menu: ${err}`));
+  },
+  true,
+);
 
 // ---- demo tour (see demo.js) -------------------------------------------------------
 
@@ -530,6 +582,7 @@ listen('mpd-message', ({ payload }) => {
 if (store.get('eqOpen', false)) toggleEq();
 if (store.get('plOpen', false)) togglePl();
 setZoom(zoom);
+applyPins();
 window.addEventListener('load', updateMask);
 setTimeout(updateMask, 300);
 await player.start();
