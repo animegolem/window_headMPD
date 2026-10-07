@@ -9,3 +9,6 @@ src-tauri/gen/
 public/skin/
 src-tauri/icons/
 *.mp4
+
+# Test skin corpus: other people's art, never committed.
+skins/
