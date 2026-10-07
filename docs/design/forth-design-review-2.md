@@ -196,3 +196,20 @@ against the sender pid WinBroker observes. Nothing caller-supplied is trusted, a
 | Must-fix | §3.1 G membership (open-view out); §2 total bound that counts retired realms; §4.1 `Math.round` definition |
 | Should-fix | §3.2 protocol written into §5 as the gate-2 obligation's candidate; §4.2 DPR domain; separate WinBroker from the media broker |
 | Gate-2 measurements | F per instance; corpus count of handlers with two G calls; mint→commit latency under a seek/volume backlog |
+
+## Errata (after rev 0.4, `c76ff9e`)
+
+Astra's qualifications to this review are correct. They are recorded in rev 0.4:
+
+1. **Per-view maximum.** The per-view linear maximum is 51 MiB (48·17/16, `realm.js:450-456`). 48 MiB is
+   the fault threshold, not the maximum. T keeps its formula; admission counts actual byte length.
+2. **No sender authentication.** A BEAM message carries no authenticated sender pid. A cast has no sender
+   field at all, and a call's `From` is built by the caller. §3.2 step 4's "observed sender pid" is wrong.
+   The boundary is the trusted closed evaluator together with a private permit ref that skin code can never
+   read or construct.
+3. **Test 2(b).** Raising F and recomputing T always leaves 64 MiB of headroom, so the memory refusal never
+   fires before the count cap. The test needs retained bytes (growth or retired realms) or a fixed T.
+4. **Revocation ordering.** Pairwise FIFO does not order a third party's revocation against a Host attempt
+   already sent. Revocation stops only commits that have not been attempted yet.
+5. **Late effects.** A timed-out attempt may still take effect late. The attempt record is written before
+   the send, and `unknown-outcome` covers that case.
