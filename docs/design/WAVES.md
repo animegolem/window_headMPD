@@ -1,6 +1,6 @@
 # Phase 1 implementation plan: Headspace on the generic engine
 
-Status: ratified plan, 2026-10-06, branch `skin-engine`. Nothing is implemented or committed.
+Status: ratified plan, 2026-10-06, branch `skin-engine`. Waves 0 to 5 are committed (rev 1.0 of ENGINE, which is this plan's constitution).
 Contract: `docs/design/ENGINE.md` (cited as `E §n` / `E Dn`). If this plan and ENGINE.md disagree,
 ENGINE.md wins and the disagreement goes to Opus.
 
@@ -25,7 +25,7 @@ wave consumes it.
 
 1. **Must not touch**: the pinned files (`src/main.js`, `src/widgets.js`, `src/player.js`,
    `src/playlist.js`, `src/style.css`, `src/viz/index.js`, `src/demo.js`, `src-tauri/tauri.conf.json`,
-   `src-tauri/src/lib.rs`, `src-tauri/src/clickthrough.rs`, `tools/convert_skin.py`), except in W3.R
+   `src-tauri/src/lib.rs`, `tools/convert_skin.py`; `src-tauri/src/clickthrough.rs` was pinned until G3.F6 deleted it), except in W3.R
    and W6.2; `src/engine/contracts.d.ts`, `package.json`, `package-lock.json` (Opus-owned; request
    changes, do not make them); files owned by another task in the same wave.
 2. **Art rule**: no task writes anything derived from skin art inside the repository. Goldens, diff
@@ -517,7 +517,7 @@ All tasks run in parallel.
 - **Owns**: `src/engine/realm/{realm.js, membrane.js, prelude.js}`, `tests/engine/realm/*`
   (except `wmploc.test.js`).
 - **Implements**: E §5.5 `createRealm`, `Realm`, `HostDispatcher`; E D1 in full: one module instance per
-  session, the fault-domain rule (discard, never dispose after an abort or leak), the scope chain
+  session (stale wording; per VIEW, ENGINE rev 1.0), the fault-domain rule (discard, never dispose after an abort or leak), the scope chain
   (`with(__IDS){with(this){…}}`, host globals as replaceable global properties, the G17 exception,
   prelude internals non-writable, dispatcher deleted), script loading by direct eval inside
   `with(__IDS)` (or the RG0-chosen fallback), `jscript:` evaluation, handler compilation with the
@@ -1394,7 +1394,7 @@ W3.R and at G5; engine items at W5.2 and G5. Each item is pass or fail with a no
 ## Appendix: file ownership by wave
 
 No file appears twice within a wave. Gates edit only ENGINE.md, `allowlist.json` bounds,
-`states.mjs` points (G2) and the manifest through `bless`.
+`states.mjs` points (G2) and the manifest through `bless`; to clear a block, the project head may also edit any file it names in that gate's ruling paragraph (ENGINE rev 1.0).
 
 | Wave | Task → owned paths |
 |---|---|

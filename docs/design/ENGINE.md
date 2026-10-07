@@ -1,8 +1,38 @@
-# The generic skin engine: ratified design
+# The generic skin engine: constitution
 
-Status: ratified design, 2026-10-06, branch `skin-engine`. Nothing is implemented or committed.
+Rules the window_headMPD skin engine and its place as VampireOTP's music widget: theming, the
+engine/host seam, and the path to the agent-written theming language.
+
+| **STATUS**                         | **REVISION** | **LAST UPDATED** |
+|------------------------------------|--------------|------------------|
+| Ratified; phase 1 at G5 (owner items open) | 1.0 | 2026-10-07 |
+
+> **WORKING PRODUCT STATEMENT**
+>
+> **Any classic Windows Media Player or Winamp skin, loaded from its archive, plays your music
+> with the look and behaviour its author intended, safely, in a native macOS window.**
+
+**Decision scope.** This document rules the engine's architecture (§3), its decisions (§4), its
+contracts (§5), the oracle and its allow-list (§9), caps (§10), phases (§2, §11), integration and
+roles (§15) and the constitutional sections §16 to §20. Pixel-level look is ruled by the oracle and
+the owner's taste, not here. Work orders live in `docs/design/WAVES.md`, which projects this
+document into cards; a ruling recorded only in WAVES counts once it is folded here.
+
+<!--
+AMENDMENT COVENANT (repo-bootstrap constitution doctrine, adopted rev 1.0):
+1. This is the ONE document all truth about the skin engine derives from. Decisions live here, not
+   in chat or in WAVES.md.
+2. Every edit bumps REVISION and LAST UPDATED.
+3. Sections are stable addresses (E §N, E Dn). Never renumber; append. Deprecate in place.
+4. Rulings fold in with an inline marker. Rulings before rev 1.0 carry their gate marker (G0-G5,
+   5F.n); from rev 1.0 they carry "(rev 1.N)". Reversals stay in the text with both markers.
+5. The constitutional sections (§16 Core invariants, §17 Current slice, §18 Acceptance criteria,
+   §19 Open questions, §20 Decision summary) are kept mutually consistent on every edit.
+6. Keep the document convertible for humans (pandoc to docx as a sanity check).
+-->
+
 Synthesised from three candidate designs (`candidate-fidelity.md`, `candidate-safety.md`,
-`candidate-delivery.md`) and three judge verdicts. Where the candidates disagreed, each decision
+`candidate-delivery.md`) and three judge verdicts (ratified 2026-10-06; "Nothing is implemented or committed" was true then, superseded rev 1.0: waves 0 to 5 are committed). Where the candidates disagreed, each decision
 takes the option the judges scored strongest and grafts the good parts of the others. Every error
 the judges found is fixed; section 13 maps each finding to the section that fixes it.
 
@@ -25,7 +55,7 @@ Evidence citations use the research notes' own section names:
 | `cand-F`, `cand-S`, `cand-D` | the fidelity, safety and delivery candidates |
 
 Code is cited as `main:N`, `widgets:N`, `demo:N`, `viz:N`, `player:N`, `lib.rs:N`, `click:N`,
-`audio.rs:N`, `eq.rs:N` against HEAD `1c68557` (the oracle pin of `parity` line 18 still holds).
+`audio.rs:N`, `eq.rs:N` against HEAD `1c68557`. That HEAD stays the citation base for line numbers; the oracle pin itself moved to Appendix A at the W3.R re-pin (rev 1.0).
 
 "Skin px" means the skin's own pixel space at zoom 1. "Pure" means a module that touches no DOM
 and runs under Node. **S** marks Sonnet implementation work and **O** marks Opus work (design,
@@ -82,7 +112,7 @@ gates, re-pins, triage).
 
 | ID | Position | Primary source | Grafts |
 |---|---|---|---|
-| D1 | QuickJS-WASM sync, main thread, membrane, `with(__IDS)` ids, wall-clock budgets | cand-S | cand-F probe-2 test, per-session instance, never dispose after abort |
+| D1 | QuickJS-WASM sync, main thread, membrane, `with(__IDS)` ids, wall-clock budgets | cand-S | cand-F probe-2 test, per-session instance (stale wording; one instance per VIEW, rev 1.0), never dispose after abort |
 | D2 | Hybrid DOM layers; separate paint/hit planes; engine picker; input plane | cand-S | cand-D "synthetic events never drag"; cand-F switch for keyed-button hit |
 | D3 | Own decoders; header probe; 16,384 axis cap; Worker with terminate | cand-S | cand-F palette-index retention, X1R5G5B5 rule |
 | D4 | In-memory JS zip, flat Map VFS, archive stored by hash, never extracted | cand-S | import-path guard; canonical re-zip for Webamp |
@@ -118,7 +148,7 @@ gates, re-pins, triage).
 8. **Pinned files** (`tools/skinlab/pins.mjs` `PINNED_FILES` is the list of record: `main.js`,
    `widgets.js`, `player.js`, `playlist.js`, `style.css`, `viz/index.js`, `demo.js`,
    `tauri.conf.json`, `lib.rs`, `convert_skin.py`; `clickthrough.rs` left the set at G3, replaced by
-   `hit_cmds.rs` in the re-pin, and is deleted) are edited only in the Opus re-pin batch (WAVES W3.R) and at cutover. Sonnet
+   `hit_cmds.rs` in the re-pin, and is deleted) are edited only in the Opus re-pin batch (WAVES W3.R, completed at G3 by G3.F6, which deleted `clickthrough.rs`) and at cutover (rev 1.0). Sonnet
    tasks list them as "must not touch".
 9. **macOS only.** Target WKWebView on macOS 14 or later.
 
@@ -227,8 +257,8 @@ side effects on import, so legacy behaviour is unchanged. The engine path is loa
   emscripten module (`Assertion failed: list_empty(&rt->gc_obj_list)`). Rules: after any WASM abort,
   OOM, or a health check that finds leaked handles, the engine **never calls `dispose` again**. It
   drops every reference to the instance and lets GC reclaim it. A clean unload (skin switch, window
-  close with zero faults) disposes normally inside a try/catch. A new session always gets a fresh
-  instance, so "Reload skin" and "Choose another skin" still work in that webview.
+  close with zero faults) disposes normally inside a try/catch. A new session, and each new VIEW,
+  always gets a fresh instance (rev 1.0: `createRealm` runs once per view), so "Reload skin" and "Choose another skin" still work in that webview.
 
 **Scope chain** (`spec 2.4`, U-31). Precedence is **element, then ids, then script globals, then
 host globals**. The single exception (G17): an id that equals a host-global name (`id="player"`,
@@ -493,7 +523,7 @@ resolution, produced with its pixels (D3):
 
 **Picker** (`input/picker.js`, pure). It walks the view in paint order, top-down; maps the point into
 each element's local coordinates; skips `visible=false` subtrees, `passThrough=true` elements (their
-SUBVIEW children are still tested, U-7) and points outside an ancestor's clip box or clip mask; and
+SUBVIEW children are still tested, U-7; U-7 also covers `clippingImage` on a SUBVIEW, honoured by renderer and shape since 5F.10, rev 1.0) and points outside an ancestor's clip box or clip mask; and
 returns the first element whose `hit` bit is set, with a role:
 
 | Role | When | Effect |
@@ -688,7 +718,7 @@ line numbers. Acceptance: 195/195 distinct corpus `.wms` give a THEME root with 
 
 **Value classes** (parsed once per attribute): literal; `jscript:` (prefix case-insensitive, optional
 leading whitespace, trailing `;` handled by eval); `wmpprop:`; `wmpenabled:`/`wmpdisabled:`;
-`res://` (string attributes, resolved through `wmploc 7.7`); handler (`on*`, `*_onchange`, PLAYER's
+`res://` (string attributes, and image attributes since G1, resolved through `wmploc 7.7`); handler (`on*`, `*_onchange`, PLAYER's
 bare event names, `<controls currentPosition_onchange>`). Handlers are never classified; they
 compile as script. A misspelled prefix (`wmppprop:`, `wmpenable:`, 18 skins, G14) stays a literal
 string with a diagnostic.
@@ -792,13 +822,13 @@ model can be implemented and tested with an in-test fake element before the buil
 | `player` | `playState`, `openState` (integers, D6.2), `status` (synthesised: "Playing", "Paused", "Stopped", "Ready", "Connecting…", U-32), `URL` (read: current file URI; write `denied`), `controls`, `settings`, `currentMedia`, `network`, `currentPlaylist`, `versionInfo` "11.0.5721.5145", `fullScreen` false | `launchURL` `denied`; `mediaCollection`, `playlistCollection`, `cdromCollection`, `dvd`, `newPlaylist` are inert stub objects |
 | `player.controls` | `play()` (`play`, or `pause 0` when paused), `pause()`, `stop()`, `next()`, `previous()`; `currentPosition` (r: extrapolated elapsed, `player:92-97`; w: `seekcur`); **`currentPositionString` as `MM:SS`, or `HH:MM:SS` from one hour (`03:07`, `01:00:00`; `spec 7.2`)**; `isAvailable(name)` | `fastForward`, `fastReverse`, `step` stubs (MPD has no scan) |
 | `isAvailable` table | **phase 1 = the oracle's** (`parity` D16): `stop` iff not stopped; `pause` iff playing; `play`, `next`, `previous` always; `currentPosition` iff duration > 0; `fastForward`/`fastReverse` never | switch `availability: 'oracle' \| 'mpd'`; the richer table is a phase-3 decision (`parity` open question 5) |
-| `player.settings` | `volume` (`setvol`; with no MPD mixer it reads 0, writes are dropped and logged once, `parity` D9); `mute` **emulated** (remember volume, `setvol 0`, restore; writing the current value is a no-op); `balance` (host-local through `DspPort`, persisted; values within ±5 go to the DSP as 0, and the stored value snaps to 0 so the bound slider snaps back at drag end, `parity` D17); `getMode/setMode('loop'\|'shuffle')` → MPD `repeat`/`random` | `rate` 1, `autoStart` true, others stub |
+| `player.settings` | `volume` (`setvol`; with no MPD mixer it reads 0, writes are dropped and logged once, `parity` D9); `mute` **emulated** (remember volume, `setvol 0`, restore; writing the current value is a no-op); `balance` (host-local through `DspPort`, persisted; values within ±5 go to the DSP as 0, and the stored value snaps to 0 so the bound slider snaps back at drag end, `parity` D17; both hosts round volume, EQ gains and balance to integers, balance rounding first and then the detent, the oracle's order, 5F.4, `parity` D31, rev 1.0); `getMode/setMode('loop'\|'shuffle')` → MPD `repeat`/`random` | `rate` 1, `autoStart` true, others stub |
 | `player.currentMedia` | `name` (Title, else Name, else file stem, `player:28-31`), `duration`, **`durationString` (same format as `currentPositionString`)**, `sourceURL`, `getItemInfo(key)` (`Author`/`Artist`→Artist, `Title`, `Album`/`WM/AlbumTitle`, `WM/TrackNumber`→Track, `Genre`, `Bitrate`→status bitrate × 1000, `Type` "audio", others `""`), `imageSourceWidth`/`Height` 0 | `setItemInfo` `denied` |
 | `player.currentPlaylist` | `count`, `name` "Now Playing", `item(i)`, `getItemInfo` | |
 | `player.network` | `downloadProgress` 100, `bufferingProgress` 100, `bitRate` from status | rest stub |
-| `theme` | `savePreference`, `loadPreference` (D6.4); `loadString` (`wmploc 7.7`); `logString` (host log); `author`, `title`, `copyright`; `currentViewID` (read) | `openView`/`openViewRelative`/`closeView`: phase 1 logs and no-ops for views other than the current one (phase 3 via `WindowManager`); `openDialog` returns `""`; `playSound` stub; `showErrorDialog` no-op |
+| `theme` | `savePreference`, `loadPreference` (D6.4); `loadString` (`wmploc 7.7`); `logString` (host log); `author`, `title`, `copyright`; `currentViewID` (read; a write naming another VIEW hands the window over, 5F.6, rev 1.0) | `openView`/`openViewRelative`/`closeView`: phase 1 logs and no-ops for views other than the current one (phase 3 via `WindowManager`), except the 5F.6 hand-over: `openView`/`openViewRelative` from a view with no area hands the window to the named view. `closeView` of the current view is `view.close()` under the gesture rule and never switches views (rev 1.0); `openDialog` returns `""`; `playSound` stub; `showErrorDialog` no-op |
 | `view` | `width`, `height` (read; a write updates the model, so script reads back what it wrote, and calls `SkinWindow.requestSize`, which phase 1 ignores per `parity` D13); `minimize()`, `close()` (**honoured only inside a user-gesture dispatch**, D6.5); `returnToMediaCenter()` (host action, default zoom toggle, `parity` D3); `timerInterval`, `title`, `focusObjectID` | `size(handle)`, `maximize`, `restore`, VIEW-level `moveTo`/`alphaBlendTo`: phase 3 |
-| `event` | `x y clientX clientY offsetX offsetY screenX screenY screenWidth screenHeight button keyCode altKey ctrlKey shiftKey srcElement fromElement toElement` (`spec 5.7`); `keyCode` is the Windows virtual-key code mapped from `KeyboardEvent.code`; the handle is revoked after the dispatch | |
+| `event` | `x y clientX clientY offsetX offsetY screenX screenY screenWidth screenHeight button keyCode altKey ctrlKey shiftKey srcElement fromElement toElement` (`spec 5.7`); `keyCode` is the Windows virtual-key code mapped from `KeyboardEvent.code`, except on `keypress`, where it carries the character code (G3, rev 1.0); the handle is revoked after the dispatch | |
 | `mediacenter` | the documented keys only: `effectType`, `effectPreset`, `videoZoom`, `videoStretchToFit`, `videoShrinkToFit`, `showTitles`, `showEffects`, `contrastMode` (U-14); persisted in the host-global `mediacenter` namespace with change events; seeded once from the legacy `localStorage.preset` | other keys live for the session only and record a ledger entry (no cross-skin store) |
 | `equalizerSettings` (`eq`) | `gainLevel1..10` (dB, host EQ state through `DspPort`, persisted), `gainLevels(i)`, `reset()`, `bands` 10, `bypass` (host state, **default false**: EQ active; WMP's documented `true` reflects its own full-mode toggle, and every Headspace user today has the EQ live), `enableSplineTension` (accepted, no DSP effect, `parity` G10) | presets: one "Custom"; SRS and normalisation stub |
 | `videoSettings` | `brightness contrast hue saturation` held locally, `reset()` | no effect |
@@ -838,7 +868,7 @@ host keys), `mediacenter`.
 | `player.URL = …` | 294 | `denied` (the user owns the MPD queue) |
 | `theme.openDialog` | 282 | returns `""` |
 | `theme.playSound(wav)` | 95 | stub; phase 3 decodes from the VFS and plays capped |
-| `theme.openView` loops | 897 | phase 1: current view only; phase 3: ≤ 16 open views per skin, ≤ 4 opens per second |
+| `theme.openView` loops | 897 | phase 1: current view only, plus the 5F.6 hand-overs (≤ 4 switches per second, rev 1.0); phase 3: ≤ 16 open views per skin, ≤ 4 opens per second |
 | `view.close()`, `view.minimize()` | | honoured only during a pointer or key handler dispatch (a user gesture); from `onload`, timers or bindings they are `denied` and logged, so a skin cannot close itself at every launch |
 | `setTimeout` floods | 18 | 64 live timers per view, 10 ms floor (D1) |
 | `savePreference` floods | 3,052 | D6.4 caps and debounce |
@@ -1034,7 +1064,7 @@ exactly the switches that correspond to allow-list entries (`showBackgroundDefau
 `buttonKeyedPixelsHit: false`) and applies the sidecar's `compat` block (reset `top` 129, preset
 title `fontSize` 7 pt = 9 px). `sliderGeometry` is `'oracle'` in **both**. Gates:
 
-1. **compat**: zero differing pixels outside the effects-hole exclusion, at DPR 1 and 2, in S1, S2,
+1. **compat**: zero differing pixels outside the effects-hole exclusion and the §9 entries whose config column includes compat (rev 1.0; five entries absorb compat pixels since G5), at DPR 1 and 2, in S1, S2,
    S2b, S3, S3b, S4; mask XOR exactly the `D11-screen-corners` set (106 bits).
 2. **faithful**: every differing pixel lies inside an allow-list entry, and **no entry absorbs more
    than its bound** (drift guard); the mask XOR lies inside `D11-screen-corners ∪
@@ -1146,7 +1176,7 @@ reads `PaletteService` and calls `viz.setPalette` on change, keeping the stale-r
 D5) and the caption (D6) mount **inside the EFFECTS slot**, above its canvas, so the containing
 subview's clip mask clips them too (`parity` D26). Their CSS is copied pixel-for-pixel from
 `css:137-188` into `src/app/overlays.css`, scoped under the slot. The notice colour comes from the
-sidecar, else the skin's first TEXT `foregroundColor`. A skin without EFFECTS gets no toast, and the
+sidecar, else the skin's first TEXT with a declared `foregroundColor` (G3.F5). A skin without EFFECTS gets no toast, and the
 notice becomes the window menu's first (disabled) item.
 
 **D10.4 Playlist widget.** `src/app/widgets/playlist.js` is a new port of `src/playlist.js` (the pinned
@@ -1344,6 +1374,11 @@ through `HostAdapter.palette` and never read files.
 ---
 
 ## 5. Contracts (`src/engine/contracts.d.ts`)
+
+**Contract of record (rev 1.0).** `src/engine/contracts.d.ts` is authoritative. The shapes below are
+as ratified; the additive amendments of G0 to G5 (for example `ArchiveError`, Origin `'quiet'`,
+`EventInit.screenWidth`/`screenHeight`, `MediaState.queuePos`, `ObjectGraph.queueEvent`,
+`ViewRuntime.diagnostics()`) are recorded in the gate rulings and in `contracts.d.ts`, not repeated here.
 
 W0.1 (Opus) writes these verbatim. Sonnet tasks implement them and may add private helpers, never
 change them. Two mechanical departures in `contracts.d.ts` (G0): §5.5's `animate:
@@ -2165,3 +2200,1243 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 - Oracle pin after the G3 re-pin (ten pinned files, `clickthrough.rs` removed): `1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2`; all 42 manifest slots (21 states × DPR 1, 2) carried over with identical PNG and mask hashes.
 - Measured bounds from G4 (faithful, S1/S2/S4 at DPR 1): `U-23-showBackground` 812 px, `button-transparency` 265 px; compat mask XOR 106 (the screen corners).
 - 5F.1: compat S2/S2b differ from the oracle at one skin px, (243,235), at DPR 1 and 2 (a one-unit blue-channel difference at the end of the `reset` underline); absorbed by `reset-underline-raster`, bound 1.
+
+---
+
+## 15. Integration, roles and the theming roadmap (rev 1.0)
+
+### 15.1 Roles
+
+| Role | Holder | Decides |
+|---|---|---|
+| Creative lead | the owner | taste; the final call on anything the user sees or hears |
+| CTO | Tally | cross-cutting technical calls across VampireOTP |
+| Project head, music subsystem: theming and widget integration | Plumb (this seat; signs "Window-Head-Dev" to peers) | this document; gate rulings; WAVES cards |
+| Language semantics | Astra | the skin Forth / Orgiac semantics; receives language user stories (§15.4) |
+| Art rendering pipelines and tooling | Genga | consulted on rendering and art tooling |
+
+Implementers (Sonnet by default, Opus where a card says O) never change git state; the project
+head commits per wave after its gate.
+
+### 15.2 The external widget
+
+window_headMPD is VampireOTP's music widget. The engine reaches its host only through
+`HostAdapter` (§5.8, D8). What a future host (PTY transport, LiveView, Electron views composited
+by GPUI) must provide is specified in `docs/design/letter-astra-pty-host.md` (`d7b1b48`) §2 to §8:
+the HostAdapter ports, painting, input, the click-through mask, the sandbox, declarative parts.
+
+### 15.3 The theming language
+
+Astra's skin Forth design, `FORTH-DESIGN.md` rev 0.4 (`c76ff9e`, workspace
+`window-head-forth-design`), is review-settled after `docs/design/forth-design-review-1.md`
+(`5bfec40`) and `-2.md` (`7a68426`, errata `1287c4d`). Its numbers (per-view heap 32 MiB,
+session total T = 384 MiB, restart policy, numeric tower, capability table) are proposals until
+gate-2 measurements; they rule nothing here yet. The long-term carrier is Orgiac: literate
+org-mode that compiles to C, with the systems layer in Elixir/BEAM. This JS engine is the
+reference implementation and its oracle (§9, D9) is the acceptance suite for any port.
+
+### 15.4 User stories are the verification target
+
+Formal verification targets user stories, not arbitrary properties. Every bug class found becomes
+a user story that rules it out. Initial theming stories, from wave 5:
+
+| Story | Bug class it rules out | Source |
+|---|---|---|
+| When a skin's handler calls a function the skin defines, that function runs. | event attributes shadowing script names | 5F.7 |
+| A skin that starts on a splash screen reaches its main view without the user doing anything. | gesture rules blocking hand-over | 5F.6; forth-design-review-2 §3.1 |
+| A skin can never close or minimise its window unless the user just clicked or pressed a key. | self-dismissing skins | D6.5 |
+| The EQ slider always shows the whole-dB value the audio is actually using. | display/audio disagreement | 5F.4, parity D31 |
+| Clicks land where the skin is drawn and pass through where it is not. | paint/hit divergence | 5F.9, 5F.10, D2 |
+
+The full set goes to Astra as language user stories after the wave-5 commit.
+
+### 15.5 The music server
+
+MPD stays the server for phase 1 and 2, reached only through `MediaModel` (D6). Replacing it with
+our own C API server (parametric EQ, formally verified EQ math, a standalone "Winamp, but better")
+is under research in `docs/research/music-server/` (rev 1.0); nothing about it is ruled yet.
+
+## 16. Core invariants  <!-- CONSTITUTIONAL -->
+
+Numbered, testable statements that must never be violated. The review gate and audit dedupe anchor
+here: a finding cites `I-n`. Each invariant names what enforces it **today** in the working tree of
+`skin-engine` (HEAD `e85fa78`, wave 5 committed), checked 2026-10-07 against the files
+named. "Unenforced" means no test, script or checker fails when the invariant breaks; "partly" says
+which half is covered. Numbers are stable: retire an invariant in place, never renumber.
+
+How the named checks run:
+- `npm test` = vitest projects `unit` then `timing` (wall-clock bounds run alone in `timing`).
+- `npm run check` = `node tools/check-boundaries.mjs && tsc --noEmit -p tsconfig.check.json`.
+- `npm run corpus -- <suite>` needs `skins/`; skips without it. It is **not** part of `npm test`.
+- `npm run skinlab -- …` needs the owner's fixture and pinned Chromium; exits 77 without them.
+- `cargo test --manifest-path src-tauri/Cargo.toml -p headcore` is what every gate runs; tests in the
+  app crate (`src-tauri/src/*.rs`) run only under a plain `cargo test` in `src-tauri` (W3.R, G3.F6).
+
+Sources: `E` = `docs/design/ENGINE.md` by section; `W l.N` = `docs/design/WAVES.md` line at rev 1.0.
+
+---
+
+### Repository and oracle hygiene
+
+**I-1. Skin art never enters git.** No golden, diff image, decoded cache or anything rendered from
+art is tracked; only facts (hashes, counts, coordinates, API names) are committed.
+[E §1 rule 1; W l.31-34]
+*Enforced: partly.* `.gitignore` covers `public/skin/`, `skins/`, `/skins`, `.skinlab/`,
+`tests/**/__out__/`, `src-tauri/icons/`, `*.mp4`; the golden store is `~/Library/Caches/window_headmpd/`
+(`tools/skinlab/paths.mjs`), outside the repo. The `git status --porcelain --untracked-files=all` check
+after every acceptance run and at every gate is manual (W l.33-34, l.47). No automated test; `git add -f`
+bypasses it.
+
+**I-2. Art-dependent tests skip, never fail, without the fixture.** skinlab exits 77 when the fixture or
+Chromium is absent and 2 for a wrong sha1; vitest marks the test skipped. [E §1 rule 7; E D9]
+*Enforced:* `tests/skinlab/store.test.js:419` (77 for every command that needs the fixture), `:378`
+(wrong sha1 reported); `tests/support/fixtures.test.js` (`describeHeadspace`/`describeCorpus` skip with
+a reason).
+
+**I-3. The engine never special-cases a skin.** No Headspace function name, id or coordinate appears in
+`src/engine/`; skin-specific data lives only in a sidecar keyed by archive SHA-256. [E §1 rules 3-4]
+*Unenforced.* No checker rule and no test; review only.
+
+**I-4. Pinned files change only in the re-pin batch (W3.R) and at cutover (W6.2).** The list of record is
+`tools/skinlab/pins.mjs` `PINNED_FILES` (ten files). [E §1 rule 8; W l.26-28]
+*Enforced: detection only.* `tests/skinlab/pins.test.js` (the list is the ten files; `oraclePin` changes
+on any byte, append or reorder); `npm run skinlab -- verify-legacy`; `bless` refuses a changed pin
+without `--repin` (`tests/skinlab/store.test.js:262`). Nothing blocks the edit itself.
+
+**I-5. Goldens are content-addressed and verified.** A golden is keyed by SHA-256 of `{target, state,
+dpr, skinSha256, oraclePin, chromiumRevision, harnessVersion}`; a recaptured golden whose PNG or mask
+hash differs from `tools/skinlab/goldens.manifest.json` is a hard failure ("oracle drift"). [E D9]
+*Enforced:* `tests/skinlab/store.test.js`; `npm run skinlab -- verify-legacy` (twice in a row for
+determinism, owner machine).
+
+**I-6. Only `bless` changes the manifest, and only Opus blesses.** `bless` refuses a different oracle pin
+unless `--repin`, records the reason and old hashes; post-cutover regeneration from
+`oracle/headspace-v1` must hash-equal the manifest. [E D9]
+*Enforced: partly.* Refusal: `tests/skinlab/store.test.js:262`; tag regeneration:
+`tests/skinlab/from-tag.test.js`. "Only Opus blesses" is unenforced (process).
+
+**I-7. No allow-list entry absorbs more than its bound, and every faithful difference lies inside an
+entry.** A bound of 0 with one absorbed pixel fails; an entry absorbing 0 is reported; a `null` bound
+fails `--strict`; the committed list is exactly the twelve entries of E §9. [E D9, §9]
+*Enforced:* `tests/skinlab/diff.test.js`; `tests/skinlab/allowlist.test.js:42` (twelve entries),
+`:81` (bounds, incl. `U-10-slider-travel` 0), `:131` (strict refuses `null`);
+`npm run skinlab -- check --strict --config compat|faithful --state S1,S2,S2b,S3,S3b,S4 --dpr 1,2`.
+
+**I-8. Allow-list entries are added only by Opus, with a deviation id and a reason.** [E §9; W l.1200-1202]
+*Unenforced* as authorship. `tests/skinlab/allowlist.test.js:42` pins the twelve entries, so any
+addition also has to edit that test.
+
+**I-9. S2 equals S2b (the click path and the skin's own `ToggleEqView` path) in both configurations,
+pixel- and mask-exactly.** [E D9 gate 3]
+*Enforced:* `npm run skinlab -- check` (`tools/skinlab/cmd-check.mjs`); owner machine only.
+
+**I-10. The realm budget never depends on the engine clock or a page clock.** The budget reads a
+`wallClock` captured from the real `performance.now` at module load; skinlab never calls
+`page.clock.install`. [E D1, D9]
+*Enforced: partly.* Realm half: `tests/engine/realm/faults.test.js:129` (the budget fires with a frozen
+engine clock and with faked `Date`/`performance`). skinlab half: unenforced; only comments in
+`tools/skinlab/capture.mjs:5` and `tools/skinlab/engine-mount.js:17`.
+
+### Untrusted input
+
+**I-11. No skin-controlled string becomes markup.** Engine code never calls `innerHTML`, `outerHTML`,
+`insertAdjacentHTML` or `document.write`, never creates an `<img>`, and writes text and tooltips only
+through `textContent` and `title`. [E §1 rule 5, D2, §8]
+*Enforced:* `npm run check` (boundary rule 3 sink scan; `node tools/check-boundaries.mjs --self-test`
+proves each rule fires); `tests/engine/render/renderer.test.js:121` ("no image element, no z-index, no
+markup setter"). The `realm/prelude.js` exemption from rule 3 is reviewed by hand.
+
+**I-12. No skin-controlled string becomes CSS source or a URL.** Font families must match
+`^[A-Za-z0-9 ._-]{1,64}$` or are dropped; cursors map to CSS keywords; colours are re-serialised as six
+hex digits; no skin string is placed in `url()`; clip masks are engine-generated PNG data URLs; engine
+code has no `fetch(`, `XMLHttpRequest`, `WebSocket` or `importScripts`. [E §1 rule 5, D2]
+*Enforced: partly.* `tests/engine/render/strings.test.js` (font family, cursor, colour,
+letter-spacing); `npm run check` (rule 3 bans the fetch sinks). No test asserts "never in `url()`"
+across the renderer.
+
+**I-13. No skin-controlled string becomes a filesystem path.** Archives are never extracted; Rust
+commands take a 64-hex SHA, never a path derived from a skin; `skin_import` takes only `.wmz/.wsz/.zip`
+regular files (not symlinks) ≤ 32 MiB with an EOCD in the last 65,557 bytes; `record_stop` takes only
+paths under `/tmp`, `/private/tmp`, `$TMPDIR`, `~/Movies`. [E D4, §7, §8]
+*Enforced:* `cargo test … -p headcore` (`src-tauri/crates/headcore/src/skinstore.rs`, `guards.rs`);
+traversal, absolute, drive-letter and NUL entry names skipped in `tests/engine/archive/zip.test.js`.
+
+**I-14. No skin-controlled string becomes a window label.** [E §1 rule 5, D7.2]
+*Unenforced.* Phase 1 creates no window, so there is nothing to test yet; the rule binds the phase-3
+window factory.
+
+**I-15. Every lookup keyed by a skin-controlled string is a `Map` or a null-prototype object.**
+`__proto__` and `constructor` are ordinary keys everywhere; `loadPreference('constructor')` returns
+`"--"`; `player.constructor` is an unknown member. [E §1 rule 6; W l.40-41]
+*Enforced: per module, by convention.* Each task that builds such a lookup adds a
+`__proto__`/`constructor` test (W global rule 5); about 75 test files do, e.g.
+`tests/engine/archive/vfs.test.js`, `tests/engine/model/objects-theme.test.js:13`,
+`tests/engine/model/objects-player.test.js:598`, `tests/engine/realm/scope.test.js:136`,
+`tests/engine/wms/tags.test.js`, `tests/app/sidecar.test.js`, `tests/skinlab/allowlist.test.js:223`.
+No global checker: a new lookup without such a test is unenforced.
+
+**I-16. Zip input stays inside its caps.** Archive ≤ 32 MiB, ≤ 4,096 entries, ≤ 32 MiB per entry,
+≤ 256 MiB total inflated (lazy), ratio ≤ 1,024:1 for entries > 1 MiB, names ≤ 255 B; inflate writes into
+a buffer of exactly the declared size; ZIP64 and multi-disk are rejected; a corrupt entry reads as
+`null`, never a throw. [E D4, §10]
+*Enforced:* `tests/engine/archive/zip.test.js` (malicious variants; the 4 GB-declared and over-ratio
+entries return `null` without allocating past the cap); `tests/engine/archive/vfs.test.js`;
+`npm run corpus -- zip`.
+
+**I-17. Image caps are checked from headers before any allocation, and a failed decode is a missing
+image, never a throw.** Axis ≤ 16,384 px, area ≤ 16,777,216 px, GIF ≤ 512 frames, 2 s per decode then
+the Worker is terminated and recreated, 256 MiB live decoded per skin. [E D3, §10]
+*Enforced:* `tests/engine/image/caps.test.js`; `tests/engine/image/{bmp,png,gif,jpeg}.test.js`;
+`tests/engine/image/service.test.js` (2 s terminate, LRU, missing ref → `null` with one diagnostic);
+`npm run corpus -- images` (0 throws).
+
+**I-18. `.wms` structural caps clamp with a diagnostic and never throw.** ≤ 20,000 elements per THEME,
+depth ≤ 64, ≤ 256 attributes per element, value ≤ 64 KiB, ≤ 64 VIEWs, view axis ≤ 4,096 px;
+engine-allocated canvases ≤ 4,096 per axis and ≤ 16.7 M px. [E §10]
+*Enforced: partly.* `tests/engine/wms/build.test.js` (20,001 elements, depth 65, a 4,097-px view);
+`tests/engine/render/compose.test.js:23` (canvas clamp ≤ 16,777,216 px). The 4 MiB `.wms` text cap: no
+test located.
+
+**I-19. Preference caps hold in both JS and Rust.** ≤ 256 keys, key ≤ 256 B, value ≤ 4 KiB, ≤ 64 KiB per
+namespace; over-cap writes are dropped with a ledger entry and leave the previous state; namespaces are
+`^[0-9a-f]{64}$`, `app` or `mediacenter`. [E D6.4, §10]
+*Enforced:* `tests/engine/model/objects-theme.test.js:68`; `tests/hosts/test/prefs.test.js`;
+`tests/hosts/tauri/prefs.test.js`; `cargo test … -p headcore` (`prefstore.rs`).
+
+**I-20. `skin_read` and `skin_remove` accept only `^[0-9a-f]{64}$`.** [E D4]
+*Enforced:* `cargo test … -p headcore` (`skinstore.rs`: rejects `../x` and uppercase).
+
+**I-21. The page's `mpd` command accepts only the allow-listed verbs, and no argument may carry CR, LF
+or NUL.** Verbs: `status currentsong playlistinfo listplaylists listplaylistinfo play pause stop next
+previous seekcur setvol clear load repeat random single consume`. [E §7; W l.940-941]
+*Enforced:* verbs, `cargo test … -p headcore` (`guards.rs`); CR/LF/NUL, `cargo test` in `src-tauri`
+(`src-tauri/src/lib.rs` test `a_line_break_in_an_argument_cannot_smuggle_a_second_command`), which the
+per-gate `-p headcore` run does not include.
+
+### Realm and membrane
+
+**I-22. Only wire values cross the membrane.** `undefined | null | boolean | finite number | string
+(≤ 64 KiB) | {__h: n}`, size-checked before copy; no host object, function, array or exception crosses;
+exactly one native function (`HostDispatcher`) crosses and it is never a global; ≤ 16 arguments.
+[E D1, §10]
+*Enforced:* `tests/engine/realm/membrane.test.js` (item 6 probes, 65 KiB strings, 16 arguments, G2 F1
+oversize keys).
+
+**I-23. An unknown identifier in skin code throws `ReferenceError`; `typeof` of one is `'undefined'`.**
+[E D1 RG0 item 4]
+*Enforced:* `tests/engine/realm/scope.test.js:163-183`; `tests/realm-gate/rg0.test.js`.
+
+**I-24. Name resolution follows element, then ids, then script globals, then host globals;** an id equal
+to a host-global name loses to the host global with a diagnostic (G17). [E D1]
+*Enforced:* `tests/engine/realm/scope.test.js:10-57`.
+
+**I-25. Event-handler attributes (`on*`, the PLAYER's bare event names) never answer the element
+scope's `has`.** A handler's bare `OnClose()` reaches the script global. [E D1; 5F.7]
+*Enforced:* `tests/engine/realm/handler-scope.test.js`.
+
+**I-26. No synchronous re-entry.** A host op never runs skin code before it returns; writes queue
+`_onchange` (and script `click()` queues `onclick`) and drain FIFO after the entry returns; a chain is
+capped at depth 32 per originating event (soft fault). [E D1; W l.703-705]
+*Enforced:* `tests/engine/realm/membrane.test.js:197-301`; `tests/engine/runtime/faults.test.js:58`.
+
+**I-27. Handles are revoked when their scope ends.** Event handles at the end of their dispatch; every
+handle of a view when its context goes. [E D1]
+*Enforced:* `tests/engine/realm/membrane.test.js:119-134`; `tests/engine/realm/faults.test.js:104`.
+
+**I-28. After a WASM abort, an OOM, a leaked-handle health check or an escaped host exception, the
+engine never calls `dispose` on that instance again,** and a fresh realm in the same process works.
+[E D1 fault domain]
+*Enforced:* `tests/engine/realm/faults.test.js:94, 121, 153, 247`; `tests/realm-gate/rg0.test.js`
+(RG0 item 6); `tests/engine/realm/leak.test.js` (object count returns to baseline after 1,000
+dispatches).
+
+**I-29. Each VIEW has its own module instance, `WebAssembly.Memory`, runtime and context;** a fault in
+one view never touches another view's heap. [E §0 item 1, D1]
+*Unenforced by test.* True by construction in `src/engine/realm/realm.js` (`createRealm` builds a fresh
+instance on every call); no test asserts two views get distinct instances.
+
+**I-30. Soft faults never unload a view; one OOM or WASM abort, or three hard faults within 30 s, do.**
+Unload clears timers, revokes handles, discards the instance, keeps the last frame and tells the shell.
+[E D1, §10]
+*Enforced:* `tests/engine/realm/faults.test.js:94, 104, 144`; `tests/engine/runtime/faults.test.js:16,
+49`; `tests/engine/realm/timers.test.js:75`.
+
+**I-31. The heap never grows past `memoryLimitBytes` (64 MiB) plus the variant's initial memory;**
+leaving it is a hard `memory` fault whether or not skin code catches it. [E D1 G2, §10]
+*Enforced:* `tests/engine/realm/memory.test.js` (`timing` project).
+
+**I-32. No entry outlives its budget.** Scripts 2,000 ms, `onload`/`onclose` 1,000, handler/`_onchange`/
+timer 100, one `jscript:` 20, the pass 1,000; an entry past deadline + 300 ms is a hard fault even
+without an interrupt poll; jobs never run inside another entry; a file over 1 MiB is refused; a spent
+scripts budget refuses the next file without compiling. [E D1, §10]
+*Enforced:* `tests/engine/realm/faults.test.js:28-94, 177-194`; `tests/engine/realm/guards.test.js`
+(slow builtins within budget + 300 ms); `tests/engine/realm/rewrite.test.js:183, 226`;
+`tests/engine/layout/expr.test.js` (pass cap). Known residual: unguarded native work can overshoot
+(E §12 R19).
+
+**I-33. Realm CPU above 50% of wall time over 5 consecutive 1 s windows throttles; above 80% for 10 is a
+hard fault.** [E D1]
+*Enforced:* `tests/engine/realm/duty.test.js`.
+
+**I-34. A view has at most 64 live timers, none below 10 ms, and VIEW `timerInterval` below 50 (and not
+0) is rejected keeping the previous value.** [E D1, §10]
+*Enforced:* `tests/engine/realm/timers.test.js:39, 45`; `timerInterval`:
+`tests/engine/model/objects-theme.test.js`, `tests/engine/runtime/faults.test.js:99`.
+
+**I-35. Skin code cannot replace or reach prelude internals.** `__IDS`, `__wmp_badAssign` and `eval`
+are non-writable; prototype guards are non-writable and non-configurable; the native dispatcher is
+deleted from the global before skin code runs; a skin cannot capture a prelude proxy handler.
+[E D1, D1 G2]
+*Enforced:* `tests/engine/realm/prelude.test.js:12-56`; `tests/engine/realm/membrane.test.js:51-94`;
+`tests/engine/realm/guards.test.js:183`.
+
+**I-36. Under a test seed the realm is deterministic:** `Date.now`, argument-less `new Date()` follow
+the engine clock and `Math.random` follows the seed. [E D1]
+*Enforced:* `tests/engine/realm/prelude.test.js:65-87`.
+
+### Object model and host policy
+
+**I-37. `view.close()`, `view.minimize()` and `theme.closeView(<current view>)` take effect only inside a
+pointer or key handler dispatch.** From `onload`, timers, bindings or queued `_onchange` they are denied
+and logged. [E D6.5; `src/engine/model/objects/theme.js:147-150`]
+*Enforced:* `tests/engine/model/policy.test.js:64-90`; `tests/engine/runtime/load.test.js:87`;
+`tests/engine/realm/timers.test.js:85-105` (`inGesture` true only inside a gesture handler, false for
+an `_onchange` it queued).
+
+**I-38. Denied APIs (`launchURL`, `URL =`, `setItemInfo`) never reach MPD or the OS;** each is ledgered
+and raises one host notice per API. [E D6.5]
+*Enforced:* `tests/engine/model/policy.test.js:38-52`; `tests/engine/model/objects-player.test.js`.
+
+**I-39. Script-originated MPD traffic is bounded:** ≤ 10 commands per second per verb (excess dropped
+with a `cap` entry); `seek` and `setVolume` are a trailing 40 ms debounce whose latest value is sent,
+deferred but never dropped. [E D6.5, §10; W l.708-709]
+*Enforced:* `tests/engine/model/policy.test.js:91-187`; `tests/hosts/tauri/media.test.js`.
+
+**I-40. A binding never writes the player,** and assigns an attribute only when the coerced value
+differs. [E D5]
+*Enforced:* `tests/engine/bind/bindings.test.js` (`:475`: one `setVolume` per drag, none for its echo;
+an equal value fires nothing).
+
+**I-41. An unknown member never runs anything:** `get` returns `undefined` and ledgers
+`unknown-member`, `set` is ignored, `call` returns `undefined`. [E D1, D6]
+*Enforced:* `tests/engine/model/objects-callprop.test.js:94-132`;
+`tests/engine/model/objects-player.test.js:598`.
+
+**I-42. A skin can read only its own preferences;** no skin-visible API takes a namespace, and
+`mediacenter` persists only its documented keys. [E D6, D6.4]
+*Enforced: partly.* `tests/engine/model/objects-mediacenter.test.js:42` (an undocumented key does not
+persist); namespace isolation holds by construction (no namespace parameter in the schema), no test
+names it.
+
+**I-43. The hosts send the audio path whole numbers:** EQ gains in whole dB clamped to ±14, volume as an
+integer, balance rounded to an integer **and then** detented (|v| ≤ 5 → 0); never `-0`; a write that
+lands on the stored value sends, saves and announces nothing. [E D6, D11; W l.1217, l.1238-1239]
+*Enforced:* `tests/hosts/test/dsp.test.js:189-270` and `tests/hosts/tauri/dsp.test.js:485-527` (the
+order is asserted: `-5.5 → 0`, `5.5 → 6`); `tests/hosts/test/media.test.js`,
+`tests/hosts/tauri/media.test.js`; `npm run skinlab -- demo --target engine --compare`.
+
+**I-44. A view switch happens only on a `theme.currentViewID` write naming another VIEW, or on
+`openView`/`openViewRelative` from a view with no area; at most 4 per second, never re-entrant within
+one dispatch.** [5F.6; W l.1227, l.1239-1241]
+*Enforced:* `tests/engine/runtime/switch.test.js` (`:92` what does not switch, `:160` a loop is capped
+at `MAX_SWITCHES_PER_SECOND` = 4); `tests/engine/model/objects-theme.test.js`.
+
+### Rendering, hit-testing and window shape
+
+**I-45. Paint order is DOM order;** no engine node has a CSS `z-index` other than `auto`, and no CSS
+transition animates a skin element. [E D2]
+*Enforced: partly.* `tests/engine/render/renderer.test.js:56-121`; `tests/engine/layout/stack.test.js`.
+CSS transitions: no test located.
+
+**I-46. Paint and hit are separate planes.** BUTTONGROUP pixels owned by no `mappingColor` are never hit
+whatever `showBackground` says; clipped pixels and keyed VIEW/SUBVIEW-background pixels are never hit;
+keyed BUTTON pixels hit only when `buttonKeyedPixelsHit`. [E D2]
+*Enforced:* `tests/engine/input/picker.test.js`; `tests/engine/image/keying.test.js`;
+`tests/headspace/picker.test.js` (fixture).
+
+**I-47. A synthetic event never starts a native window drag;** only a real left press on a `chrome`
+pixel calls `startDrag()`. [E D2, D7.5]
+*Enforced:* `tests/engine/input/dispatch.test.js:366`.
+
+**I-48. Every press on a control holds capture until `pointerup` or `pointercancel`; a click needs down
+and up on the same element; the DOM `click` event adds nothing.** [E D2]
+*Enforced:* `tests/engine/input/dispatch.test.js`.
+
+**I-49. The window shape is never below 64 set bits** (the full view rect replaces it, with a
+diagnostic), including after a script resizes its VIEW; it is sent only when its hash changes.
+[E D2, D7.1, §10; W l.1227]
+*Enforced:* `tests/engine/shape/mask.test.js:48`; `tests/engine/runtime/view-box-mask.test.js:53-63`;
+`tests/hosts/tauri/window.test.js` (identical shapes are not resent). Mask freshness during a slide:
+in-app smoke item E3 only (manual).
+
+**I-50. The renderer and the shape path agree on every clip:** tiled clips wrap, an all-clip VIEW is
+unmasked while SUBVIEWs stay masked, and a `clippingImage` masks a SUBVIEW without a background.
+[E D2; 5F.5, 5F.9, 5F.10]
+*Enforced:* `tests/engine/render/container-clipimage.test.js:96` (pixel for pixel against
+`shape/scene.js`); `tests/engine/render/container-tiled-mask.test.js`;
+`tests/engine/shape/container-clip.test.js`; `tests/engine/shape/shared-rules.test.js`;
+`npm run skinlab -- fixtures --area render`.
+
+**I-51. A page can set only its own window's shape and capture.** Hit commands take
+`window: WebviewWindow` and no label argument; capture is per window. [E D7.1]
+*Enforced: partly.* Structural (the signatures in `src-tauri/src/hit_cmds.rs`);
+`cargo test … -p headcore` (`hit.rs`: capture is per label, `remove` clears it).
+
+### Engine/host boundary
+
+**I-52. `src/engine/**` stays Tauri-free and sink-free.** No import of `@tauri-apps/*`, `src/app/`,
+`src/hosts/`, `src/viz/` or the legacy files; bare imports only `fflate`, `jpeg-js`,
+`quickjs-emscripten-core`, `@jitl/quickjs-wasmfile-release-sync`, `@jitl/quickjs-ng-wasmfile-release-sync`;
+no banned sink outside `realm/prelude.js` (including `localStorage`, `sessionStorage`, `indexedDB`,
+`eval(`, `new Function`); `src/hosts/test/**` imports no Tauri; the pure directories never reference
+`document` or `window`. [E D8]
+*Enforced:* `npm run check`; `node tools/check-boundaries.mjs --self-test`;
+`tests/tools/check-boundaries.test.js`.
+
+**I-53. Every engine, host and app module conforms to `src/engine/contracts.d.ts`.** [E D8, §5]
+*Enforced:* `npm run check` (`tsc --noEmit -p tsconfig.check.json`, `checkJs` with `strict` and
+`noImplicitAny` off, so untyped code passes).
+
+**I-54. `headcore` has no Tauri dependency.** [E §6.2, D11]
+*Unenforced.* No check fails if `src-tauri/crates/headcore/Cargo.toml` gains one.
+
+## 17. Current slice  <!-- CONSTITUTIONAL -->
+
+**Phase 1** (§2): Headspace on the generic engine at parity with the hand port, corpus-wide load
+robustness, legacy deleted.
+
+| Wave | State (rev 1.0) |
+|---|---|
+| 0 to 4 | committed: `6ab3c74`, `fa99f95`, `74cc48b`, `05f6274`, `feb297c` |
+| 5 | committed `e85fa78`: W5.1 to W5.5, 5F.1 to 5F.10, W5.3F, W5.4F; G5 code items pass; G-WK and the smoke checklist await the owner |
+| 6 | next: W6.1 engine as default after owner dogfooding; W6.2 cutover and tag `oracle/headspace-v1`; W6.3 seam-freeze review |
+| 7 | optional: rungs R1 Miniplayer and R2 aoe |
+
+**Needs the owner, in the app** (coordinate first: the app takes over MPD outputs): G-WK (G5 item
+3), the in-app smoke checklist (G5 item 4; legacy L1 to L12, engine E1 to E10), QuickJS under the
+CSP, the realm stack re-measure in WKWebView, the fan-out reload smoke, the demo video (D10.9
+criterion 5).
+
+**Deferred with self-contained scope:** phase 2 (§11.1), phase 3 (§11.2), the theming language
+(§15.3), the music server (§15.5).
+
+## 18. Acceptance criteria  <!-- CONSTITUTIONAL -->
+
+Phase 1 ends when every D10.9 criterion holds. Standing at rev 1.0:
+
+| D10.9 | Criterion | Standing |
+|---|---|---|
+| 1 | skinlab gates, DPR 1 and 2, only the §9 allow-list | **pass** (G5, 2026-10-07: strict compat and faithful, 12 comparisons and 2 gates each) |
+| 2 | WebKit report-only pass explained | **pass**: one finding, `legacy-track-smoothing` 6,678 px against the Chromium bound 6,670 at S2/S2b @2x (WAVES G5 results) |
+| 3 | G-WK in the real app | owner session |
+| 4 | in-app smoke checklist | owner session |
+| 5 | demo tour headless pass; owner video | headless **pass** (both configurations); video: owner |
+| 6 | corpus: 0 host exceptions, 0 renderer crashes, non-empty first frames; R0 to R2 no hard faults | **pass**: 195/195 mounted and non-empty, 0 crashes, 0 page exceptions; R0 to R2 hard 0 (`docs/coverage/corpus-load.txt`) |
+| 7 | owner dogfooding, no fault unloads, no stuck capture | W6.1 |
+| 8 | tag `oracle/headspace-v1` reproduces every manifest hash | W6.2 |
+| 9 | Opus signs off the ledger and the allow-list | W6.2 |
+
+## 19. Open questions  <!-- CONSTITUTIONAL -->
+
+1. **The in-app ledger.** The scripted R0 run records an empty ledger (G5 item 5 holds); the owner
+   session must read the in-app ledger to confirm only `pl.setColumnResizeMode` and `video` appear.
+2. **In-app unknowns**: QuickJS-WASM under the app's CSP; the realm stack limit (256 KiB,
+   `maxStackBytes`) measured in WKWebView; fan-out reload.
+3. **JScript property-as-method, realm half** (host half done; §11.2).
+4. **A size-less SUBVIEW with a clip mask**: renderer and shape would disagree; the corpus has none
+   (5F.10 count 0). Unruled until a skin needs it.
+5. **Never-quiet skins**: Navigator and Lollapalooza 2003 animate forever by design (a
+   self-restarting alpha-blend cycle). Proposed: informational, not a fault.
+6. **Theming-language gate 2** (§15.3): the per-instance fixed memory charge F; the corpus count of
+   handlers with two gesture-gated calls; mint-to-commit latency under a seek/volume backlog.
+7. **The music server** (§15.5): replace MPD, and with what.
+8. **Unenforced invariants** (§16): I-3 (no skin special cases), I-8 (only Opus adds allow-list
+   entries), I-14 (window labels never from skin strings), I-29 (one realm per VIEW), I-54 (`headcore`
+   has no Tauri dependency), and I-10 in part. Each wants a checker or a test.
+9. **Per-wave Rust tests**: gates run `cargo test -p headcore`; the MPD argument guard tests in the app
+   crate run only under a full `cargo test` (cutover, W6.2). Widen the per-wave run?
+
+## 20. Decision summary  <!-- CONSTITUTIONAL -->
+
+The flattened current state of every accepted decision for the window_headMPD skin engine, phase 1.
+A reader who reads only this section and §16 (Core invariants) should not be wrong about anything.
+
+**Provenance.** Extracted 2026-10-07 at rev 1.0 (wave 5 committed as `e85fa78`). Citations: `E §n` / `E Dn` = `docs/design/ENGINE.md` by section (stable);
+`W l.N` = `docs/design/WAVES.md` by line at rev 1.0 (moves when WAVES is edited); `P Dn` / `P 0.n` =
+`docs/research/headspace-parity.md`; `spec U-n` = `docs/research/wms-spec.md`; `path:N` = code.
+
+**Markers.** The document has no rev numbers yet, so reversals and corrections are marked with the
+gate that made them and its date. "Stale wording, corrected <date>" means the earlier text was wrong
+about what was built. "Accepted <gate>, reversed <gate>" means the decision itself changed. "Superseded"
+means a WAVES card's text was overtaken by a later ENGINE ruling. Per the amendment covenant, these gate markers stand for pre-1.0 rulings; rulings from rev 1.0 carry `(rev 1.N)`. All gate dates: G0 and G1 2026-10-06; G2, G3, G4, 5F and 5F round 2 2026-10-07.
+
+**Status (rev 1.0).** Waves 0 to 5 are committed (`e85fa78`). G5's code items pass (WAVES "G5 results"); G-WK and the in-app smoke checklist await the owner; waves 6 and 7 have not run.
+
+---
+
+### Ground rules (E §1)
+
+- Skin art never enters git: goldens, diff images, decoded caches and anything rendered from art stay
+  untracked (`skins/`, `public/skin/`, skinlab output); facts about art (hashes, pixel counts,
+  coordinates, API names) may be committed. [E §1 rule 1; W l.31-34; P 0.1 rule 8]
+- The legacy hand port is the oracle and keeps running until cutover. [E §1 rule 2; P 0.1 rule 7]
+- The engine follows WMP semantics; hand-port slips are allow-listed, never baked in; anything
+  Headspace-only lives in a sidecar keyed by archive SHA-256. [E §1 rule 3; P 0.1 rule 1]
+- The engine never special-cases a skin: no Headspace function name, id or coordinate in
+  `src/engine/`. [E §1 rule 4; P 0.1 rule 2]
+- No skin-controlled string becomes markup, CSS source, a URL the page fetches, a window label or a
+  filesystem path. [E §1 rule 5; E §8]
+- Every lookup keyed by a skin-controlled string is a `Map` or null-prototype object (VFS names,
+  element ids, pref keys, schema members, sidecar refs, mediacenter keys); `loadPreference('constructor')`
+  returns `"--"` and `player.constructor` is an unknown member. [E §1 rule 6; W l.40-41]
+- The phase-1 fixture is the owner's `~/Downloads/Headspace.wmz` (wmz sha1 `f9671f06…`), not
+  `skins/wmp/Headspace.wmz` (the 2000 revision); art-dependent tests skip when it is absent (skinlab
+  exit 77, vitest skipped), never fail. [E §1 rule 7; W l.38-39]
+- Pinned files are `tools/skinlab/pins.mjs` `PINNED_FILES` (ten: `main.js`, `widgets.js`, `player.js`,
+  `playlist.js`, `style.css`, `viz/index.js`, `demo.js`, `tauri.conf.json`, `lib.rs`,
+  `convert_skin.py`), edited only in the re-pin batch (W3.R) and at cutover. `clickthrough.rs` was
+  pinned (eleven files, W l.26-28, W0.1 acceptance 5); it left the set and was deleted by the O card
+  G3.F6, which completed the re-pin at gate G3 (an edit point the rule's wording does not name; see
+  Conflicts). [E §1 rule 8; W l.971-973]
+- macOS only: WKWebView on macOS 14 or later. [E §1 rule 9]
+
+### Phases and coexistence (E §2, §11)
+
+- Phase 1: generic WMP engine plus app shell, Headspace at parity with the hand port, corpus-wide load
+  robustness, legacy deleted at cutover (D10.9). Phase 2: Winamp 2 `.wsz` through Webamp behind
+  `SkinHost`, EQ profiles, preamp, bypass, PCM frames, cluster window binding, PaletteService artifact
+  tier. Phase 3: corpus breadth R3-R9, multi-view windows, view resizing, long-tail elements, own
+  skins. [E §2]
+- Coexistence: `index.html` loads `src/entry.js`, which dynamically imports `src/main.js` (legacy,
+  default) or `src/app/boot.js` (engine), chosen by `?engine=wmp`, then `localStorage.engine`, then
+  `VITE_ENGINE` (each read in try/catch); an Option-held window-menu item flips it; the legacy path
+  never loads QuickJS. `entry.js` replays the window `load` event after the legacy import when it
+  already fired (G0). [E §2; W l.108-111, l.213-215]
+- Deferred to phase 3 (not phase-1 work): secondary views as native windows, the resize policy and
+  `view.size()` grips, CUSTOMSLIDER, animated GIF, `.cur`/`.ani`, `nineGridMargins`, `resizeImages`,
+  `hueShift`/`saturation`, EDITBOX/LISTBOX/POPUP/ITEM/AUTOMENU widgets, PLAYLIST selection methods,
+  `theme.playSound`, a `launchURL` confirm, EQ presets and spline tension, `videoSettings` effects,
+  the `availability: 'mpd'` table, a `Viz` size option, a persistent decode cache, a Worker realm or
+  realm-side mirror (only if the R9 perf gate fails), real-WMP goldens for U-2/U-10/U-23/U-25 (if
+  obtainable before Microsoft's 2026-11-10 skin end-of-life), other platforms. [E §11.2]
+
+### D1. Script realm
+
+- QuickJS compiled to WASM, the `-sync` variant (not asyncify), synchronously on the main thread of
+  each skin webview; `quickjs-emscripten-core@0.32.0` and `@jitl/quickjs-wasmfile-release-sync@0.32.0`
+  pinned exactly; the ng variant swaps in by one import; loaded only on the engine path. [E D1]
+- The `WebAssembly.Module` is compiled once per webview; each VIEW gets its own module instance,
+  capped `WebAssembly.Memory`, `QuickJSRuntime` and `QuickJSContext` (`createRealm` per call,
+  `attachView` once per view), so a fault in one view never touches another view's heap. Earlier text:
+  "one module instance per skin session, one context per VIEW" (stale wording, corrected 2026-10-07:
+  per VIEW). Still stale in E §0.1 (D1 grafts "per-session instance"), W l.519-520 ("one module
+  instance per session") and E D1 fault-domain ("A new session always gets a fresh instance").
+  [E §0 item 1; E D1 "Instances and contexts"; commit `95321b2`]
+- Fault domain: after a WASM abort, OOM, or a health check that finds leaked handles, the engine never
+  calls `dispose` again and drops every reference; a clean unload disposes inside try/catch; a new realm
+  always gets a fresh instance, so "Reload skin" and "Choose another skin" work in that webview. [E D1]
+- Scope precedence: element, then ids, then script globals, then host globals; the one exception (G17):
+  an id equal to a host-global name loses to the host global, with a diagnostic. [E D1; spec U-31]
+- Handlers compile once to `new Function(<params>, "with(__IDS){with(this){" + body + "\n}}")` with
+  `this` = the element proxy; PLAYER events get their documented parameter names in exact case. PLAYER
+  handler keys are the lowercased attribute names (G2). [E D1; W l.710-711]
+- The element proxy's `has` is true only for the element class's members plus attributes present in
+  its markup, case-insensitively. Event-handler attributes (`on*`, the PLAYER's bare event names) are
+  never in `has`, so a handler's bare `OnClose()` reaches the script global (5F.7, 2026-10-07; before
+  it, Headspace's `onclose="OnClose();"` hit the attribute and threw `TypeError`, losing its preset
+  save). [E D1; W l.1246-1249, l.1261-1262]
+- `__IDS` is a realm-side Proxy answered from a realm-side `Set`: `has(k)` when k equals a VIEW id
+  exactly, or equals one case-insensitively and no own global named exactly k exists, and k is not one
+  of the six host-global names. Unknown names fall through and throw `ReferenceError`. A Proxy on the
+  global's prototype is rejected (it turns unknown names into `undefined`). Documented fallback: own
+  accessor properties per id and case variant; RG0 items 1-6 passed (G1) and E D1 records no fallback
+  adoption. [E D1; W l.418]
+- Host globals (`player`, `theme`, `view`, `event`, `mediacenter`, `playerApplication`) are
+  configurable, writable data properties installed before any skin script (`event` an accessor); a skin
+  `var`/`function` of the same name replaces them. Prelude internals are non-writable,
+  non-configurable; the one native dispatcher is captured in a closure and deleted from the global
+  before skin code runs. [E D1]
+- Script files run as global code `with(__IDS){ eval(__src) }`; a top-level `var` that exactly equals an
+  id writes through to the element, diagnosed and accepted (U-31). `jscript:` values compile as
+  `function(){ with(__IDS){ with(this){ return eval(__src); } } }`. Handler text compiles as-is (prefixes
+  are labels); on failure one leading `identifier:` is stripped and retried, else a syntax diagnostic.
+  [E D1]
+- Proxies lowercase member names before they cross; skin-declared names stay case-sensitive, so
+  case-variant calls of skin functions throw as in WMP. [E D1; spec U-28]
+- The prelude installs `#132` constants (plus `osOpeningUnknownURL`) before any skin script whether
+  listed or not; `#169` `sprintf` (string `$` patterns literal, G1), `#134`, `#136` when listed; other
+  `res://` script entries warn and are skipped. [E D1; W l.422]
+- Timers are prelude functions; callbacks live realm-side and fire on the engine clock. VIEW
+  `timerInterval`: default 1000, 0 off, non-zero below 50 rejected keeping the previous value; runs only
+  if `ontimer` exists. Caps: 64 live timers per view, 10 ms floor. [E D1; E §10]
+- Test-mode determinism: `Date.now` and argument-less `new Date()` read the engine clock;
+  `Math.random` is seeded from the skin SHA-256. [E D1]
+- The membrane is copy-only: `undefined | null | boolean | finite number | string (≤ 64 KiB) | {__h: n}`
+  cross; strings and property keys are size-checked before copy (G2); handles become cached Proxies
+  (`bEq === bEq`); no host object, function, array or exception crosses; host errors become a realm
+  `Error` with a fixed message; exactly one native function (`HostDispatcher`) crosses; `has` never
+  crosses. [E D1; E §10]
+- The host validates every op: handle live, member in the class schema (unknown: `get` → `undefined`
+  plus ledger `unknown-member`, `set` ignored, `call` → `undefined`), ≤ 16 arguments, coercion per
+  `spec 2.4`/U-20, per-API policy. Event handles are revoked when their dispatch ends; all of a view's
+  handles when its context goes. [E D1]
+- No synchronous re-entry: a host op never runs skin code before returning; changes a write causes are
+  queued and dispatched FIFO after the entry returns; chain depth capped at 32 per originating event
+  (soft fault). Script `click()` on BUTTONGROUP/BUTTONELEMENT queues `onclick` the same way (G2).
+  [E D1; W l.703-705; risk R11]
+- Budgets run on a `wallClock` captured from the real `performance.now` at module load, separate from
+  the engine clock; skinlab never installs Playwright's fake clock. `executePendingJobs` runs after every
+  entry, ≤ 1,000 jobs per drain. Budgets: scripts 2,000 ms, `onload`/`onclose` 1,000, handler/`_onchange`/
+  timer 100, one `jscript:` 20, whole `jscript:` pass 1,000. [E D1; E §10]
+- Memory (G2): the module gets a capped `WebAssembly.Memory` (`memoryLimitBytes` 64 MiB plus the
+  variant's initial memory); an entry that leaves the heap past its cap, or three failed `grow` calls, is
+  a hard `memory` fault, caught or not. QuickJS's own `setMemoryLimit` is not used. A single request
+  past wasm32's ~2 GiB stays an ordinary soft exception. [E D1 G2 rulings; E §10]
+- Stack (G1/G2): `maxStackBytes` 256 KiB (1 MiB let recursion escape WASM as a host `RangeError` under
+  Node 26). A stack overflow skin code catches is ordinary skin behaviour; only an uncaught one, or one
+  that escapes as a host `RangeError`, is a hard fault (and an escape discards the instance). WAVES
+  G2.F4 item 8 DOS-6 said a caught stack overflow stays hard (superseded by E D1 G2). [E D1 G2;
+  E §10; W l.551-552, l.743]
+- Leftover jobs (G2): jobs pending after an entry's 1,000-job drain are charged to it as a soft fault,
+  then run as their own `jobs` entry before the next entry; a flood that survives is a hard fault at
+  `jobs`; jobs never run inside another entry. WAVES G2.F4 DOS-8 said "dropped" (superseded: QuickJS
+  cannot discard pending jobs). [E D1 G2; W l.743]
+- Guard slots (G2): prototype guards are non-writable, non-configurable; global-function guards
+  (`parseFloat`, `escape`, …) stay writable so a skin may declare its own; originals live in the
+  prelude's private table. Slow-builtin guards throw once the dispatch is over budget (R19); unguarded
+  native work can overshoot by one interrupt-poll interval, accepted with force-quit plus safe mode as
+  recovery. [E D1 G2; E §12 R19; W l.561-565]
+- Call-assignment rewrite (R20): a statement QuickJS rejects with "invalid assignment left-hand side"
+  becomes a call that throws `TypeError('Cannot assign to a function result')` at run time, ≤ 32 per
+  file, each a `script-rewrite` diagnostic (219/219 corpus scripts load). [E §12 R20; W l.553-560]
+- Further realm caps (G2): script source 1 MiB per file; the deadline is checked before every compile
+  and a spent scripts budget refuses the file; an entry past deadline + 300 ms is a hard `budget` fault
+  without an interrupt poll; the queued-dispatch drain gets `budgets.load` ms then drops the rest with
+  one soft fault; realm diagnostics 64 per stream per view, then one `*-capped`. [E §10]
+- Soft faults (skin exception, syntax error, membrane cap, re-entrancy cap) abort one dispatch, are
+  logged once per (site, message), counted, ledgered as `soft-fault` per site (5F.6b), and never
+  unload. Hard faults (budget, memory or stack exhausted, prelude throws, WASM abort): one OOM or abort,
+  or 3 hard faults within 30 s, unloads the view (timers cleared, handles revoked, instance discarded,
+  last frame stays, fault panel). [E D1; W l.1227]
+- Duty cycle: realm CPU > 50% of wall time over 5 consecutive 1 s windows throttles (timer floor 40 ms,
+  position listeners 2 Hz, ledgered); > 80% for 10 consecutive windows is a hard fault. [E D1]
+- Rejected realms: host eval (no isolation, no CPU bound), Web Worker (kept as a phase-3 option),
+  sandboxed iframe. [E D1 Rejected]
+- Calling a host property as a method (`mediacenter.effectType()`): the host half returns the value
+  (G3, G3.F4), but the realm proxy hands script the value, so `x.prop()` still throws in QuickJS; 28
+  corpus `jscript:` faults, none in Headspace; the realm-side fix is phase 3. [W l.939-940, l.961-963;
+  E §11.2]
+- Accepted risks: R1 (QuickJS vs JScript corners), R2 (membrane cost), R3 (wall-clock misfires), R11
+  (queued `_onchange`), R19 (slow-builtin latency), R20 (call-assignment rewrite). [E §12]
+
+### D2. Renderer and hit-testing
+
+- Hybrid renderer: a retained DOM layer tree (`div.view` scaled by zoom → `div.layers` with one
+  `div.sv` per SUBVIEW, `canvas` leaves holding engine-composited RGBA, `span` TEXT, `div.slot` for
+  EFFECTS/VIDEO; `div.input` plane; `div.windowed` for native-style widgets). [E D2]
+- Paint order is DOM order, never CSS `z-index`: children sort by `(zIndex, kind, documentIndex)` with
+  the background at `(0, 0)`; negative z paints under the background; equal z, later on top (U-1); a
+  runtime `zIndex` write re-sorts that parent only; no engine node sets `z-index` (keeps the demo's
+  1000/2000 budget). [E D2; P 3.1]
+- Every SUBVIEW is a stacking context (Reading C) and clips its subtree when it has a non-zero size,
+  explicit or image-derived; a size-less SUBVIEW does not clip (R10); switches `subviewClip`,
+  `stacking: 'context' | 'flat'`. [E D2, D5; P 0.1 rule 4]
+- SUBVIEW `clippingColor`/`clippingImage` becomes `-webkit-mask-image` from an engine-generated PNG data
+  URL at native size, not stretched; it clips overlays too (P D26). The mask is sampled with
+  `image-rendering: pixelated` (5F.2). [E D2; W l.1119-1120]
+- VIEW rulings (5F.5, G5): (1) a VIEW whose clip keeps no pixel is not masked (Gorillaz), SUBVIEWs stay
+  masked, and a tiled background tiles its mask; (2) `visible="false"` on a VIEW is ignored; (3) a VIEW
+  with no size takes its background image's size, else the box of its children. The shape path matches
+  (wrap tiled clips, skip an all-clip VIEW; 5F.9). [E D2; W l.1220-1223, l.1241, l.1256-1258]
+- U-7 (`clippingImage` on SUBVIEW, honour it): the shape path honoured it, the renderer masked only from
+  a background image's clip plane (O ruling on the 5F.9 divergence) → 5F.10: a SUBVIEW with a
+  `clippingImage` and no `backgroundImage` gets the shape path's clip mask at the image's native size.
+  Corpus count: 32 SUBVIEW tags in the 342 archives, 19 in the 195 distinct skins (`wms-spec.md`'s 37
+  counts every element). 5F.10 outcome, including part (b) on size-less SUBVIEWs with a clip mask, is
+  not recorded. [W l.1262-1264, l.1268-1271; spec U-7]
+- `transparencyColor` on a SUBVIEW keys only its background canvas, so negative-z children show
+  through. Windowed controls sit in the top layer, ignore z, alpha and clipping, and get native DOM
+  events. [E D2]
+- BUTTON: one keyed image per state, `disabled > hoverDown > down > hover > up`, fallbacks
+  `hover ?? up`, `down ?? hover ?? up`, `disabled ?? up`; an image-less BUTTON with a size still
+  hit-tests. BUTTONGROUP: incremental per-pixel composite from an exact-RGB owner map; unowned pixels
+  painted from `image` iff `showBackground` (faithful default `false`, U-23) and never hit. [E D2]
+- SLIDER/PROGRESSBAR: tiled tracks with `borderSize` end caps; `slide=false` reveals in place,
+  `slide=true` translates; thumb geometry `'oracle'` in every config (travel `length − thumbExtent`,
+  P D32, U-10); vertical max at the top; values stay continuous inside the control (P D31). CUSTOMSLIDER
+  (phase 3) hits and values from the grey `positionImage`. [E D2]
+- TEXT is a `span` with `textContent` only, `round(pt·4/3)` px (default 10 pt), the oracle's text box
+  (`-webkit-font-smoothing: none`, `line-height: normal`, no padding); TEXT with `alphaBlend` and no
+  `backgroundColor` gets black. EFFECTS is a host slot; VIDEO an inert stub (`onvideostart` never fires,
+  P D19); PLAYLIST a host widget. Canvases are skin-px, `image-rendering: pixelated`, filled by
+  `putImageData`. [E D2]
+- Animation: `moveTo` linear; `slideTo` and `moveSizeTo(…, fSlide=true)` cubic ease-in-out (U-25);
+  `alphaBlendTo` linear; one Animator on the engine clock writes integer values; `onEndMove` for all
+  three move methods and `onEndAlphaBlend`, queued after the frame; a new move cancels the old without
+  firing its end event; `cancel(el)` stops both channels and a 0 ms tween fires on the next frame (G3);
+  `alphaBlend` is CSS `opacity`; no CSS transitions. [E D2; W l.938-939]
+- Strings: text and tooltips via `textContent`/`title` only; `fontFace` split on commas, each family
+  must match `^[A-Za-z0-9 ._-]{1,64}$` or is dropped, survivors quoted and followed by
+  `Tahoma, Verdana, sans-serif` (P D22); cursor keywords map to CSS keywords, unknown keeps the previous
+  (U-21); a skin string is never placed in `url()`. [E D2]
+- Paint and hit are separate bit planes per drawable. Hit = 1 for opaque pixels, keyed BUTTON /
+  BUTTONGROUP-owned / SLIDER-thumb pixels when `buttonKeyedPixelsHit` (faithful `true`, compat `false`),
+  image-less sized BUTTON, TEXT box; hit = 0 for keyed VIEW/SUBVIEW-background pixels (pass through),
+  clipped pixels, unowned BUTTONGROUP pixels. [E D2]
+- Picker (pure): top-down in paint order, skipping `visible=false` subtrees, `passThrough` elements
+  (their SUBVIEW children still tested, U-7) and clipped points; roles `control`, `blocked`
+  (`enabled=false`), `effects`, `widget`, `chrome`, none. A real left press on `chrome` calls
+  `startDrag()` (every unclaimed opaque pixel drags: P D29, intended); synthetic events never start a
+  native drag. BUTTONGROUP picks return the BUTTONELEMENT with part index; a thumbless slider is
+  `chrome` (G3). [E D2; W l.930-932]
+- Gestures (U-18): down, up, click (down and up on the same element), dblclick, hover enter/leave, no
+  bubbling; any control press calls `setCapture(true)` until `pointerup`/`pointercancel` (fixes P D30);
+  the DOM `click` is ignored; `setPointerCapture` in try/catch; P D28 reproduced. A press or key the
+  skin handled is reported by `preventDefault()` (G3). [E D2; W l.932-933]
+- Window shape: per visible element in paint order, `paint ∪ (hit if interactive)` clipped by ancestors,
+  plus slot/widget rects; recomputed from a dirty flag at most once per frame, including during
+  animations (fixes P D11/D33), sent only on a hash change; popcount < 64 is replaced by the full view
+  rect with a diagnostic. After a script writes VIEW `width`/`height`, the mask is recomputed from the
+  scene (5F.6c). Mask freshness comes from the model's dirty set, not a MutationObserver. [E D2, §3.2,
+  §14; W l.1227]
+- Forbidden in engine code: `innerHTML`, `insertAdjacentHTML`, `<img src>` of any skin-derived URL,
+  CSS `z-index`, `elementFromPoint`/`pointer-events` tricks for skin elements, CSS transitions for skin
+  animation. Rejected: `<img>` per state, one canvas compositor (TEXT via `fillText`), `clip-path` hit
+  regions. [E D2]
+- Accepted risk: R10 (size-less SUBVIEWs do not clip). [E §12]
+
+### D3. Image pipeline
+
+- Our own pure-JS decoders for every format, run in a Worker in the app and inline in Node: BMP (all
+  header sizes, 1-32 bpp, RLE4/RLE8, BITFIELDS; 16-bit BI_RGB is X1R5G5B5; alpha forced to 255 with one
+  diagnostic if non-zero; short palettes accepted; truncated RLE keeps decoded rows, one diagnostic, also
+  when the stream ends on a command boundary without end-of-bitmap, G1.F1; 8-bit keeps
+  `{palette, indices}`), PNG (own chunk parser, `fflate@0.8.3` inflate into exactly the IHDR size, no
+  gAMA/iCCP), GIF (own LZW, frame 0 in phase 1), JPEG (`jpeg-js@0.4.4` after our SOF probe,
+  `maxResolutionInMP` 16.78 so the area cap is the one authority, G1.F1). Format by magic bytes only.
+  [E D3; W l.429-432]
+- Browser decoders are rejected: engine-dependent oracle, BMP alpha, Node testability, ImageIO never
+  parses attacker bytes. [E D3]
+- Caps from headers before allocation: axis 16,384 px (pharaoh 15,990×20), area 16,777,216 px, GIF
+  frames 512, live decoded 256 MiB per skin session (LRU), 2 s per decode then the Worker is terminated
+  and recreated. A failed or capped decode is a missing image: nothing rendered, one diagnostic.
+  [E D3; E §10]
+- Keying is a pure function of `(sha256 of entry bytes, KeySpec)`, cached: exact RGB, `auto` = pixel
+  (0,0), `none`/undeclared = no key; an undeclared SLIDER is not keyed; keys follow script image swaps;
+  PNG/GIF alpha and keys both apply (U-27); map images are never keyed; alpha-0 pixels are never keyed
+  (G1); output RGBA plus `paint`, `hit`, `clip` planes. Replaces the hand port's universal offline
+  magenta keying (P D27). [E D3; W l.423]
+- Probing is synchronous over header bytes; decodes are lazy (shown image plus state images); a
+  script's `image` write returns at once and old pixels stay until the new decode lands; `settled()`
+  waits for decodes. [E D3]
+- Accepted risk R21: jpeg-js's own 256 MB guard rejects 4:4:4 JPEGs above ~12.5 MP that the probe
+  accepts (corpus max 8.3 MP). [E §12 R21]
+
+### D4. Skin loading and untrusted input
+
+- Rust stores archives by SHA-256 and returns bytes; the engine parses the zip in JS, in memory, never
+  extracted; one zip reader serves app, harness, Node tests and (phase 2) Webamp. [E D4]
+- `skin_import` (AppShell only) accepts only `.wmz/.wsz/.zip` (case-insensitive) regular files, not
+  symlinks, ≤ 32 MiB, with an EOCD in the last 65,557 bytes; writes `app_data_dir/skins/<sha>.<ext>` by
+  temp-then-rename. `skin_read`/`skin_remove` accept only `^[0-9a-f]{64}$` and return a raw
+  `tauri::ipc::Response`. `skin_default_path()` returns `WINDOW_HEADMPD_SKIN`, else
+  `~/Downloads/Headspace.wmz` if present. No dev-only Rust command exists (stated only in the E §13 #24
+  resolution). Rust never parses entries. [E D4; E §13 #24; W l.906-908]
+- Zip reader: EOCD in the last 65,557 bytes; ZIP64 and multi-disk rejected; central directory only;
+  stored and deflate (encrypted/other skipped); corrupt local signature salvaged only when local and
+  central names match; inflate into exactly the declared size; CRC mismatch logged; names UTF-8 if flag
+  11 else CP437, `\`→`/`; NUL, leading `/`, drive-letter and `..` names skipped; directories, symlinks,
+  `__MACOSX/`, `RESOURCE.FRK/`, `._*`, `.DS_Store` (case-insensitive, G1.F5) and folded basenames `''`
+  or `.` (G1.F5) skipped. Caps: 32 MiB archive, 4,096 entries, 32 MiB per entry, 256 MiB total inflated
+  (lazy), 1,024:1 ratio for entries > 1 MiB, names ≤ 255 B. [E D4; E §10; W l.463-465]
+- VFS key is the NFC-normalised, lowercased basename; references reduce the same way; collisions: last
+  central-directory entry wins with a diagnostic; a `Map`; `res://` never reaches the VFS. [E D4]
+- Definition file: fewest unresolved references, then stem equal to archive name, then larger (U-17).
+  Text (`.wms` and `.js`): BOM sniff, else pure ASCII, else Windows-1252; implicit `<stem>.js` loads
+  when not listed. [E D4]
+- The archive SHA-256 keys prefs, sidecars, window state, goldens and caches; decoded images live in an
+  in-memory LRU; a persistent decode cache is phase 3, only if R9 load time > 1 s. [E D4]
+- Phase 2: Webamp receives a canonical re-zip of the validated VFS as a `blob:` URL, never the original
+  bytes. [E D4]
+
+### D5. Parse, layout and bindings
+
+- The scanner is a hand-written tolerant tokenizer, not an XML parser: comments and `<?…?>` skipped,
+  tag/attribute names lowercased (ASCII-only fold, G1), loose quoting and spacing accepted, entities
+  decoded in values before script sees them, duplicate attributes including case variants: last value
+  wins (kept at the first position, G1) with a diagnostic (U-5), close tags pop to the nearest
+  case-insensitive match, scanning stops after the root's first close, unknown tags are inert nodes
+  ledgered `unknown-tag`, unknown attributes kept without behaviour. [E D5; W l.421-422]
+- Value classes: literal, `jscript:`, `wmpprop:`, `wmpenabled:`/`wmpdisabled:`, `res://`, handler;
+  handlers are never classified, they compile as script; misspelled prefixes stay literal with a
+  diagnostic. `res://` is accepted on image attributes as well as string attributes (G1;
+  9SeriesDefault). [E D5; W l.420-421]
+- Coercion: numbers trimmed; booleans `true/false/1/0` in any case, anything else keeps the previous
+  value; colours `#RRGGBB`, `#RGB`, the 140 IE names (darkseagreen `0x8FBC8F`, G1), `none`, `auto`;
+  script writes coerce to the attribute type. [E D5; W l.420]
+- Build: document order, literal values and predefined-tag defaults (G23); sizes default from the image
+  probe; a size-less VIEW takes its background image size, else its children's box (5F.5); ids are
+  case-preserved and per VIEW, a repeated id resolves to the last declaration; id-less elements get
+  `Unnamed_<kind>_<n>` numbered per kind in document order across the THEME (G2); host-only `x-`
+  attributes are accepted only from sidecars. [E D5, D2; W l.340-341, l.709-710]
+- `jscript:` evaluates once, in document order (U-3): literal pass, prelude, skin scripts, `jscript:`
+  pass, binding settle, `onload`; a not-yet-evaluated attribute reads its default 0; inside one element,
+  attribute-table order (G3); pass capped at 1,000 ms plus 20 ms per expression. No re-evaluation:
+  `layout/align` records the size each container's children were placed for (G3), and a phase-3 parent
+  resize re-places by alignment; the escape hatch is a per-attribute `reevaluate` flag. [E D5, §14;
+  W l.936-937]
+- Stacking follows Reading C (every SUBVIEW a stacking context; BUTTONELEMENTs use their group's z;
+  equal z by document order). [E D5; P 0.1 rule 4]
+- Bindings are host-side, never in the realm: `wmpprop:` paths with literal call segments resolve
+  case-insensitively against host globals then VIEW ids; a binding subscribes to every object on its
+  path and re-resolves on replacement; an unresolvable path keeps the default and ledgers
+  `unresolved-binding` once; one-way, assigning only if the coerced value differs and firing
+  `<attr>_onchange` through the queue. `parsePath` uses `wms/values.js` `parseBindPath` (one grammar,
+  G1). [E D5; W l.416]
+- No feedback loops: a binding never writes the player; script writes back go through idempotent
+  `MediaModel`/`DspPort` setters; the 32-deep chain cap is the backstop. While the user drags a slider,
+  bound `value`/`max` updates are held (latest wins) and applied at drag end (P D18). [E D5]
+- `wmpenabled:X`/`wmpdisabled:X` bind `controls.isAvailable(name)` (negated for `wmpdisabled:`) on any
+  boolean attribute (U-4), re-evaluated on play-state, open-state, queue and position changes. [E D5]
+- Position publishes to host bindings every frame while playing; realm-visible changes are coalesced to
+  `realmTickHz` = 10 Hz; seeks and state changes publish at once. Origin `'quiet'` (G3) applies a write
+  and its followers without queuing `_onchange`; post-load quiet writes use `'quiet'`, never `'init'`
+  (G3.F1). [E D5; W l.925-927, l.951-953]
+
+### D6. Object model
+
+- Host-side objects behind handles; one schema (lowercased keys) drives membrane validation, the realm's
+  `has` sets, bindings, stubs, policies and the coverage ledger. Element objects are built against the
+  `ElementModel` contract. [E D6]
+- `player`: `playState`/`openState` integers (D6.2), `status` synthesised ("Playing", "Paused",
+  "Stopped", "Ready", "Connecting…"), `URL` read-only (write denied), `versionInfo` "11.0.5721.5145";
+  `launchURL` denied; `mediaCollection`, `playlistCollection`, `cdromCollection`, `dvd`, `newPlaylist`
+  inert stubs. [E D6, D6.5]
+- `controls`: `play()` sends `play` or `pause 0` when paused; `currentPosition` reads extrapolated
+  elapsed, writes `seekcur`; `currentPositionString`/`durationString` are `MM:SS`, `HH:MM:SS` from one
+  hour; `isAvailable` phase 1 = the oracle table (stop iff not stopped, pause iff playing, play/next/
+  previous always, `currentPosition` iff duration > 0, scan never; P D16), switch
+  `availability: 'oracle' | 'mpd'`. [E D6]
+- `settings`: `volume` via `setvol` (no MPD mixer: reads 0, writes dropped, logged once, P D9); `mute`
+  emulated; `getMode/setMode('loop'|'shuffle')` → MPD `repeat`/`random`; `balance` host-local through
+  `DspPort`, persisted. [E D6]
+- Host quantisation (P D31; 5F.4, ratified 5F round 2): `DspPort.eq.setGain` rounds to whole dB;
+  `balance.set` rounds to an integer, **then** applies the ±5 detent (values within ±5 go to the DSP as
+  0 and the stored value snaps to 0, P D17), the oracle order (`widgets.js:272` rounds, `main.js:86`
+  detents); `MediaModel.setVolume` rounds to an integer; both hosts; never `-0`; a write that rounds onto
+  the stored value is silent (`onChange` fires only on change, G2/G2.F3). E D6 and E D11 describe the
+  detent only (stale wording, corrected 2026-10-07: round first). The gate changed
+  `tests/engine/model/objects-elements.test.js:453` from 7.5 to 8. [E D6, D11; W l.712, l.1215-1218,
+  l.1237-1239]
+- `currentMedia`: `name` (Title, else Name, else file stem), `duration`, `durationString`, `sourceURL`,
+  `getItemInfo` mapping, `imageSourceWidth`/`Height` 0; `setItemInfo` denied. `currentPlaylist`: `count`,
+  `name` "Now Playing", `item(i)`. `network`: `downloadProgress` and `bufferingProgress` 100, `bitRate`
+  from status. [E D6]
+- `view`: `width`/`height` writes update the model (script reads back what it wrote) and are forwarded
+  to `SkinWindow.requestSize`, which phase 1 ignores (P D13; W4.1 forwards origin-`script` writes, G2);
+  `minimize()`/`close()` honoured only inside a user-gesture dispatch; `returnToMediaCenter()` is a host
+  action, default zoom toggle (P D3). [E D6, D7.3; W l.707-708]
+- `event`: the `spec 5.7` fields including `screenWidth`/`screenHeight` (G2); `keyCode` is the Windows
+  VK from `KeyboardEvent.code` for keydown/keyup, and the character code for keypress (G3); the handle
+  is revoked after the dispatch. [E D6; W l.706, l.934-935]
+- `mediacenter`: only the documented keys (`effectType`, `effectPreset`, `videoZoom`,
+  `videoStretchToFit`, `videoShrinkToFit`, `showTitles`, `showEffects`, `contrastMode`, U-14) persist,
+  in the `mediacenter` namespace, seeded once from legacy `localStorage.preset`; other keys live for the
+  session and are ledgered. [E D6]
+- `eq`: `gainLevel1..10` (dB, host state through `DspPort`, persisted), `reset()`, `bands` 10, `bypass`
+  host state default `false` (EQ active; WMP's documented `true` rejected), `enableSplineTension`
+  accepted with no effect; presets one "Custom". `videoSettings` held locally, no effect. [E D6, §14]
+- Elements: ambient attributes, `moveTo slideTo moveSizeTo alphaBlendTo`, per-type attributes,
+  `elementType`, `textWidth`; BUTTONGROUP `click(i)` and BUTTONELEMENT `click()` are live and queue
+  `onclick` (G2.F2); EFFECTS maps onto the host `EffectsControl`; PLAYLIST `setColumnResizeMode`/
+  `setColumnWidth` accepted and ignored; VIDEO a stub. [E D6; W l.724]
+- Enums (D6.2): play 3/13, pause 2/13, stop with a song or non-empty queue 1/13, empty queue and no
+  song `psUndefined` 0 / `osUndefined` 0, MPD unreachable 0/0 with status "Connecting…". [E D6.2]
+- `MediaModel` (D6.3) is the only MPD seam: the Tauri adapter wraps the pinned `player.js` exports; the
+  test adapter is a scripted fake; commands are typed and idempotent, never raw MPD strings.
+  `MediaState.elapsed` is as of the last status and `elapsed()` extrapolates (G2); `queuePos` added (G1).
+  [E D6.3; W l.412, l.706]
+- Preferences (D6.4): `savePreference` stores `String(value)`; `loadPreference` returns the stored
+  string or `"--"` when unset (G20 over U-16's `""`); namespaced by archive SHA-256, no API takes a
+  namespace; stored in Rust files `app_data_dir/prefs/<ns>.json` (temp-then-rename), not
+  `localStorage`; caps 256 keys, key ≤ 256 B, value ≤ 4 KiB, 64 KiB per namespace, enforced in JS and
+  Rust, over-cap writes dropped with a ledger entry; loaded into a `Map` before scripts; 250 ms debounced
+  write-through; namespaces `<sha256>`, `app`, `mediacenter`. [E D6.4, §14]
+- Policies (D6.5): `launchURL`, `URL =`, `setItemInfo` denied and ledgered once; `openDialog` returns
+  `""`; `playSound` stub; `view.close()`/`minimize()` gesture-only (denied from `onload`, timers,
+  bindings); timers 64 per view, 10 ms floor; MPD commands from script ≤ 10/s per verb, `seek` and
+  `setVolume` a **trailing** 40 ms debounce (the latest value is sent 40 ms after the last write, never
+  dropped; G2: "not a fixed batch"); collections inert stubs. [E D6.5; W l.708-709]
+- Theme view verbs (5F.6, ratified 5F round 2): a script write of `theme.currentViewID` naming another
+  VIEW of the theme hands the main window over (old view's `onclose`, its runtime disposed, the named
+  view attached in the same `SkinWindow` sized by `setInitialSize`, a diagnostic); `openView`/
+  `openViewRelative` hand over only from a view with no area (34 corpus splash skins pass); at most 4
+  switches per second, never re-entrant within one dispatch (a loop gets a soft fault); a second
+  window stays phase 3. What changed (accepted E D6/D6.5, partly reversed 5F.6 2026-10-07; E text not
+  yet amended): `currentViewID` was read-only and is now writable with a hand-over; `openView`/
+  `openViewRelative` of another view hand over from a no-area view and otherwise still log and no-op
+  ("current view only" stands for a view that shows something); `closeView` is unchanged and never hands
+  over (every corpus `closeView` targets a secondary view; `closeView(<current view>)` acts as
+  `view.close()` under the gesture rule, `theme.js:144-151`). [E D6, D6.5; W l.1210-1213,
+  l.1225-1228, l.1239-1241]
+- After a view switch (5F.8): the runtime's attach map is keyed on the view shown; `setInitialSize` is
+  never called for a size-less first view; the fault panel reads the view shown; the window key stays
+  `${sha}/${firstViewId}` for stability across launches. [W l.1251-1253]
+- `res://` and wmploc (D6.6): resolver for `wmploc`, `wmploc.dll` or `-`; library registry #132,
+  #134, #136, #169 (replace-all `sprintf`); a re-authored English string table for the 47 corpus ids
+  (Microsoft's labels cannot ship), plus `#2091 "%1 / %2"` (G1.F4); `RT_IMAGE`/`RT_BITMAP` resolve to a
+  transparent image of the documented size plus a diagnostic. [E D6.6; W l.414-415, l.456]
+- Coverage ledger (D6.7): every `stub`, `denied`, `unknown-member`, `unknown-tag`, `unresolved-binding`,
+  `unresolved-res`, `cap` and `soft-fault` site is recorded once per `(skinSha, api)`; realm soft faults
+  are ledgered per site (5F.6b); a soft-fault count means distinct reasons per site, not occurrences
+  (W5.4F); stubs are implemented in `tools/scan-api.mjs` rank order; coverage is measured, never
+  asserted. [E D6.7; W l.1227, l.1275]
+- Accepted risks: R13 (re-authored `res://` wording), R18 (40 ms MPD coalescing). [E §12]
+
+### D7. Windows
+
+- `SkinWindow` abstraction, frozen in phase 1 with one `native` binding: one Tauri `WebviewWindow` per
+  WMP VIEW; phase 1 adopts the existing `main` window and opens nothing else (a 5F.6 view switch reuses
+  it); the `cluster` binding is phase 2, decided with Webamp code in hand. [E D7; W l.1227]
+- Per-window click-through (`headcore::hit`, glue `hit_cmds.rs`, replaces `clickthrough.rs`): commands
+  take `window: WebviewWindow` and act on the caller's label, no label argument exists; capture names
+  one window, not a global flag; the poll thread runs every 16 ms, 8 ms while two registered frames
+  intersect; entries drop on `Destroyed`; `Regions` exists in phase 1; no shape yet keeps the window
+  clickable; legacy `set_hit_mask`/`set_capture` stay until cutover as caller-bound wrappers.
+  `hit_set_bits` body is little-endian `u32 w, u32 h, f64 zoom`, then bits LSB-first row-major (G1).
+  W3.R calls ratified at G3: CR/LF/NUL refused in `mpd` args and `palette`, label cleanup on page load,
+  `Result` returns, caps of 1,024 regions and 8,192 coordinates. [E D7.1; W l.417-418, l.940-942]
+- Labels: phase-3 secondary windows are `skin-<sha12>-<n>`, never from skin strings. [E D7.2]
+- `view.width`/`view.height` (D7.3): phase 1 keeps P D13 (writes update the model, `requestSize`
+  returns `false`, the window stays 760×394, the mask makes the unused strip click-through). Phase 3
+  adds a per-session resize policy, `honor` by default, which a sidecar can pin to `ignore` (Headspace
+  does). cand-F's phase-1 honouring is rejected (needs owner sign-off). [E D7.3]
+- Initial size (D7.4): at attach the host sizes the window to VIEW size × zoom before the first frame
+  (not a script write, so D13 does not apply); never for a size-less first view (5F.8b). [E D7.4;
+  W l.1253]
+- Drag via `SkinWindow.startDrag()` from the picker's `chrome` role (D7.5). Persistence per
+  `SkinWindow.key` = `<sha256>/<viewId>` in the `app` namespace (zoom, Keep on Top, Show on All Desktops;
+  position in phase 3); the main window keeps `center: true` in phase 1 (D7.6). [E D7.5, D7.6]
+- Accepted risks: R7 (webview per view memory, phase 3), R8 (click misrouting under 16 ms polling).
+  [E §12]
+
+### D8. Engine/host boundary and page hardening
+
+- `src/engine/` is Tauri-free with one entry, `createEngine(host, opts)`; everything platform-specific
+  comes through `HostAdapter`; adapters `src/hosts/test/` (built first, the harness's host) and
+  `src/hosts/tauri/`. Plain JavaScript; `src/engine/contracts.d.ts` is the single source of types; every
+  module carries `// @ts-check`. [E D8]
+- `tools/check-boundaries.mjs` (via `npm run check`) enforces: no engine import of `@tauri-apps/*`,
+  `src/app/`, `src/hosts/`, legacy files or `src/viz/`; only five allowed bare imports; banned sinks
+  (`fetch(`, `XMLHttpRequest`, `WebSocket`, `importScripts`, `eval(`, `new Function`, `Function(`,
+  `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `__TAURI`, `localStorage`,
+  `sessionStorage`, `indexedDB`) with `realm/prelude.js` the one exemption; no Tauri in
+  `src/hosts/test/`; no `document`/`window` in the pure directories; `--self-test` over planted
+  fixtures. Plus `tsc --noEmit -p tsconfig.check.json` over engine, hosts and app. [E D8; W l.125-128]
+- `contracts.d.ts` is Opus-owned; a task that needs a change stops and returns to O. Contract changes at
+  gates are additive (G1: `ArchiveError`, `queuePos`, `maxStackBytes`, …; G2: `objectOf`, `queueEvent`,
+  `screenWidth`/`Height`, …; G3: `'quiet'`, `Renderer.frame(dirty, now?)`, …). G0 departures: §5.5's
+  `Pick` spelled out member by member; a type-only `Buffer` shim (engine code still may not use
+  `Buffer`). [E §5, D8; W l.410-418, l.702-707, l.925-930]
+- TestHostAdapter: manual clock (`advance(ms)` in 16 ms steps), scripted fake `MediaModel` with the
+  `parity 4.1` presets imported from `tools/skinlab/media-presets.js` and never re-typed (G0), in-memory
+  prefs, fake `DspPort`, recording `TestSkinWindow`, inline decode executor, stub effects slot, injected
+  playlist-widget factory; headless in Node without `window`/`slots`. Its fake `MediaModel` commands do
+  not move `queuePos` (known limit, G1). [E D8; W l.398-400, l.423-425]
+- Element handles are 1..N per theme; W4.1 keys realms and dispatchers per session so collisions across
+  themes cannot meet; `SlotHandle.hitRects()` is in view px; no boundary exemption for `model/` (G2).
+  [W l.707-713]
+- CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src
+  'self' blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost;
+  object-src 'none'; base-uri 'none'; frame-src 'none'`; `connect-src 'self'` is required for the
+  `.wasm` fetch; if WKWebView rejects `'wasm-unsafe-eval'`, fall back to `'unsafe-eval'` in `script-src`
+  only (R14); realm isolation does not depend on the CSP. Phase 2 adds `blob:` to `connect-src`. The
+  W3.R in-app CSP result is not recorded. [E §7; W l.917-918]
+- `mpd` verb allow-list (`headcore::guards::mpd_verb_allowed`): `status currentsong playlistinfo
+  listplaylists listplaylistinfo play pause stop next previous seekcur setvol clear load repeat random
+  single consume`. `record_stop` accepts only paths under `/tmp`, `/private/tmp`, `$TMPDIR` or
+  `~/Movies`. Phase 1 adds only `core:window:allow-set-position` to capabilities. [E §7]
+- Accepted risks: R14 (`wasm-unsafe-eval` in WKWebView), R15 (contract drift; one Opus-owned
+  `contracts.d.ts`, `tsc --checkJs` in every acceptance). [E §12]
+
+### D9. Oracle and tests
+
+- `skinlab` drives pinned Playwright Chromium (`playwright-core@1.63.0` and its installed revision),
+  never system Chrome; captures the legacy hand port as goldens; renders the engine through the
+  TestHostAdapter; diffs per `SkinWindow` rect for pixels and hit mask. [E D9]
+- Clocks: legacy capture on real time, settled on `transitionend` + 200 ms + two rAF, its mask the last
+  recorded `set_hit_mask`; the engine on the manual clock (`advance(500)` then `settled()`); skinlab never
+  calls `page.clock.install`. S7 pauses the CSS transition at 60 ms (G0). [E D9; W l.216]
+- Legacy mounting needs zero edits to pinned files (`viz-stub.js`, `tauri-stub.js` with `parity 4.1`
+  replies, seeded `localStorage`); skinlab replays the `load` event like `entry.js` (G0). [E D9;
+  W l.213-215]
+- Input: real Playwright mouse clicks at identical skin coordinates (S2 (224,185), S3 (532,184), S4
+  (440,44)), pointer parked at (755,390); DPR 1 and 2; no focus ring. States S1, S2, S2b
+  (`callGlobal('ToggleEqView')`, must equal S2), S3, S3b (12 rows), S4, S5 (hover/press), S6 (playing),
+  S7 (report-only), S8 (in-app manual). [E D9]
+- Fixture: `SKINLAB_HEADSPACE` (default `~/Downloads/Headspace.wmz`) with the wrong sha1 exits 2; absent
+  fixture or Chromium exits 77. skinlab exit codes: 0 pass, 1 fail, 2 usage/wrong fixture, 77 skip.
+  [E D9]
+- Two engine configurations: `faithful` ships; `oracle-compat` flips exactly `showBackgroundDefault:
+  true` and `buttonKeyedPixelsHit: false` and applies the sidecar `compat` block; `sliderGeometry` is
+  `'oracle'` in both. [E D9]
+- Gates: (1) compat: zero differing pixels outside the effects-hole exclusion at DPR 1 and 2 in S1, S2,
+  S2b, S3, S3b, S4, mask XOR exactly the 106 `D11-screen-corners` bits; (2) faithful: every differing
+  pixel inside an allow-list entry, no entry over its bound, mask XOR inside `D11-screen-corners ∪
+  button-transparency`; (3) S2 == S2b in both; (4) S5/S6 faithful within the allow-list. Gate 1's
+  wording conflicts with the compat/both allow-list entries added at G5/5F (see Conflicts). [E D9, §9]
+- Comparison: exact premultiplied RGBA (all alpha-0 pixels equal) outside the exclusion; mask XOR in
+  skin px; report with per-entry absorbed counts against bounds (an entry absorbing 0 is reported).
+  [E D9]
+- Goldens are content-addressed and outside git (`~/Library/Caches/window_headmpd/skinlab/`), keyed by
+  SHA-256 of `{target, state, dpr, skinSha256, oraclePin, chromiumRevision, harnessVersion}`; the
+  committed `tools/skinlab/goldens.manifest.json` maps keys to hashes, popcount, bbox, provenance;
+  `check` verifies recaptured PNG and mask hashes against it (mismatch = hard "oracle drift"). [E D9]
+- `bless --target legacy --reason "…"` is the only way to change the manifest; it refuses a different
+  oracle pin unless `--repin`; implementing tasks never bless, Opus does; a capture found unchanged keeps
+  its old provenance reason (G0). After cutover, tag `oracle/headspace-v1` and `bless --from-tag`
+  regenerate the oracle in a temporary worktree and must hash-equal the manifest. [E D9; W l.217]
+- What Chromium cannot see: a report-only `--browser webkit` pass at the parity gate, and G-WK (both
+  renderers in the real app's WKWebView, S1-S4, `skinlab diff --files`) as a cutover criterion. [E D9]
+- Unit tests use synthetic own-authored fixtures; corpus suites (`npm run corpus -- <suite>`) skip
+  without `skins/` and commit counts only under `docs/coverage/`; `tests/headspace/*` skip without the
+  fixture; skinlab `fixtures` compare against pixels computed from fixture data. Fixture ladder: R0
+  Headspace (phase 1), R1/R2 optional wave 7, R3-R9 phase 3. [E D9]
+- Accepted risks: R4 (Chromium oracle vs WKWebView), R5 (legacy capture non-determinism), R6 (DPR-2
+  canvas vs `<img>`), R9 (docs-faithful differences, allow-listed with bounds), R16 (local-only goldens),
+  R17 (Chromium Tahoma). [E §12]
+
+### D10. App features around any skin
+
+- All shell features live in `src/app/`, never the engine. Window menu (right-, Control- or
+  Option-click): Keep on Top, Show on All Desktops, Larger/Normal Size, Reload Skin, Option-held engine
+  flip until cutover. Skin first, host second (P D8): a right press on an element with a mouse handler
+  goes to the skin and no menu opens; Control/Option-click always open the menu. [E D10.1]
+- Effects host (`viz-host.js`) mounts the unchanged `Viz` in the EFFECTS slot, maps the EFFECTS object
+  and `mediacenter.effectPreset` onto it; a click on EFFECTS with no `onclick` steps the preset (P D25);
+  VizHost consumes `PaletteService` with the stale-result guard. [E D10.2]
+- Overlays (track toast, notice, caption) mount inside the EFFECTS slot so its clip mask clips them
+  (P D26); notice colour from the sidecar, else the first TEXT with a declared `foregroundColor`
+  (G3.F5; E D10.3 says "the skin's first TEXT `foregroundColor`"). [E D10.3; W l.968]
+- Playlist widget: a new port of `playlist.js` over `MediaModel`, honouring the documented PLAYLIST
+  colour/visibility attributes, CSS scoped under the slot; open combo reports its rect for the mask.
+  [E D10.4]
+- Keyboard: the focused element's handler, then the VIEW's, run first (each `InputSink.key` call runs
+  only `init.srcElement`'s handler, never bubbles, G3); shell defaults (Space, ←/→ ±5 s, ↑/↓ volume ±5,
+  V) only if no skin handler ran, ignore Cmd/Ctrl/Alt, and do nothing to volume without an MPD mixer
+  (P D9). [E D10.5; W l.933-934; `src/engine/input/dispatch.js:536-543`]
+- Sidecars (`src/app/sidecars/<sha256>.json`, committed, schema-validated, refs in Maps): `overlays`
+  (EQ frequency labels, P D1), `attrs` in both configs (WMS attributes and host-only `x-` ones such as
+  `x-foregroundMode: playhead`, P D2), `compat` only under oracle-compat (reset `top` 129, preset title
+  7 pt), `actions`, `restore` (drawer replay, P D23), `viewResize`, `tour`. [E D10.6]
+- Headspace sidecar data: ids `Unnamed_buttongroup_2` (transport), `Unnamed_button_1` (pause),
+  `Unnamed_button_3/4/5` (vis-drop prev/next/close), `Unnamed_text_1` (preset title), `Unnamed_text_4`
+  (reset) (G2); PLAYLIST colours the oracle paints (G3.F5): playing row `#A9FF2B`, selected background
+  `#1C4702`, text `#FFFFFF`; `pl backgroundColor` `#285f03` (accepted G3.F5, reversed G5/5F 2026-10-07:
+  now `none`, because the oracle shows the drawer art there). Balance detent and volume debounce are
+  host-wide, not sidecar data. [E D10.6; W l.966-968, l.1207-1209; sidecar JSON]
+- Demo tour: a generic driver plus a Headspace choreography using only `DemoTarget` (from the
+  inspector); synthetic pointer events hit the input plane; acceptance is headless with the same
+  `MediaModel` call sequence and `set_eq` values as the legacy run. Timing check: "EQ open by 7.5 s"
+  (accepted W4.4, reversed G4: unreachable by the pinned tour, which clicks at ~8.24 s) is now "EQ open
+  before the first band drag (8.6 s)". [E D10.7; W l.1056, l.1070-1071, l.1166]
+- Robustness: a host-drawn fault panel on unload (Reload skin, Choose another skin, Use legacy Headspace
+  until cutover; the window menu keeps working); safe-mode boot (`boot.pending` marker cleared 10 s
+  after the first frame, or Shift at launch, shows the panel without loading); legacy `localStorage`
+  keys migrated once. Host code may use `localStorage`; the engine may not. [E D10.8]
+- Cutover requires all of: skinlab gates 1-4 at DPR 1 and 2 with only the §9 allow-list; WebKit pass
+  clean or explained; G-WK; the in-app smoke checklist; demo tour headless acceptance plus an owner
+  video; corpus run with zero uncaught host exceptions and renderer crashes and a non-empty first frame
+  for every loading skin (R0-R2 zero hard faults; long-tail hard faults reported, not blocking); owner
+  dogfooding; tag `oracle/headspace-v1` reproducing every manifest hash; Opus sign-off of ledger and
+  allow-list. None is recorded as met. [E D10.9]
+
+### D11. Audio-side changes
+
+- Phase 1 changes audio only by frame fan-out: `headcore::fanout` generic over `FrameSink`;
+  `audio_subscribe(window, on_frame, opts) -> u64`, `audio_unsubscribe(id)`; send errors and destroyed
+  windows drop subscribers; the legacy call shape still works. A viz-host dispose leaked one subscriber
+  per skin reload until W4.3 unsubscribes it (G3). [E D11; W l.943-944]
+- The EQ clamp stays ±14 dB (±20 rejected). EQ profiles, preamp, bypass and PCM in `Frame` are phase
+  2. The ±5 balance detent is a host binding rule (Webamp's ±25 only inside Webamp). The DSP centres
+  (31, 62 Hz) vs Headspace's labels ("32", "63") are an owner decision, not parity. [E D11]
+
+### D12. Phase-2 seam
+
+- `SkinHost`/`HostedSkin.capabilities` (`eq`, `wantsPcm`, `windowModel`, `scripted`) is the phase-2
+  seam; `skin-registry.js` opens every archive with the engine's `openVfs`, so every family passes the
+  same caps; `WmsSkinHost` declares `{eq: null, wantsPcm: false, windowModel: 'native-per-view',
+  scripted: true}`. `MediaModel`, `DspPort`, `AudioFrameBus`, `PrefStore`, `PaletteService`,
+  `WindowManager` are shared. Seam freeze review at the end of phase 1 (W6.3). [E D12; W l.990-991]
+- Phase 2 Webamp runs in the page realm behind a typed MPD command set, a window capability file without
+  `record_*` or import commands, the phase-1 verb allow-list as backstop, `webamp@2.3.1` private APIs
+  through one self-tested module that fails closed. [E D12]
+- `PaletteService` is host-side: phase 1 `local` (OKLab k-means, `roles: null`, `guarantees: []`) and
+  `default` tiers; phase 2 the `notan-palette/1` artifact tier; the nine roles never grow; local
+  extraction is never published as an artifact. [E D12; E §14]
+- Accepted risk: R12 (Webamp private-API drift). [E §12]
+
+### Oracle and gates
+
+- The §9 allow-list (`tools/skinlab/allowlist.json`, committed; regions derived at run time from the
+  art, no art coordinates hardcoded) has twelve entries: `effects-hole` (exclusion, 31,487 exact),
+  `U-23-showBackground` (812, G4), `D20-reset-y` (rect area), `reset-underline-raster` (compat, 1,
+  5F.1), `D21-preset-title` (rect area; absorbs nothing, its region lies inside the effects hole, kept
+  as a guard, G4), `U-10-slider-travel` (0), `D11-screen-corners` (mask, 106 exact),
+  `button-transparency` (mask, 265, G4), `legacy-viz-mask-bleed-left` (23) and `-right` (16),
+  `legacy-track-smoothing` (6,670), `playlist-icon-raster` (10). A new difference is an engine bug or an
+  O-added entry. [E §9; W l.1068-1069]
+- G0: live mask popcounts 89,328 / 122,636 / 123,258 / 89,328 (S1-S4) equal the parity emulation bit
+  for bit; S5/S6/S7 keep S1's mask; the live oracle wins over the emulation. [E App. A, §14]
+- G3 re-pin: `clickthrough.rs` removed; oracle pin
+  `1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2`; all 42 manifest slots (21 states ×
+  DPR 1, 2) carried over with identical PNG and mask hashes; the `parity` line-18 pin table is
+  superseded by `pins.mjs` plus the manifest. [E App. A; W l.919-920, l.971-973]
+- G4 (first end-to-end parity): Headspace loads through `createEngine` in ~66 ms (26 ms warm);
+  faithful S1/S2/S4 pass with exactly `U-23-showBackground` 812 and `button-transparency` 265; compat
+  S1/S4 pixel-identical, S2 == S2b; bounds set from measured counts and skinlab runs `--strict` from then
+  on; `vite.config.js` pre-bundles `jpeg-js` (O edit). [W l.1062-1069, l.1111-1113]
+- 5F.1: the `reset` underline end pixel (243,235) is a compositor rounding difference (text over a
+  composited `<canvas>` vs over an `<img>`), proven by minimal repro; entry `reset-underline-raster`
+  bound 1 ratified as O's. [W l.1116-1118; E §9]
+- 5F.2: the engine's subview clip mask was sampled bilinear at DPR 2 and now uses `image-rendering:
+  pixelated` (head silhouette 2,363 → 80 device px); the residuals are oracle smoothing, not engine bugs,
+  and the engine keeps its crisper rendering (no compat smoothing switch); with them `check --strict`
+  passes compat and faithful S1/S2/S2b/S4 at DPR 1 and 2. [W l.1118-1124]
+- Wave 5 results: W5.2 and W5.5 pass; W5.4 mounts 195/195 skins with zero crashes, 38 empty first
+  frames (34 splash hand-overs → 5F.6, 4 renderer bugs → 5F.5); W5.3's demo compare failed only on
+  unrounded EQ gains → 5F.4; S3/S3b difference was the playlist panel colour (sidecar fix) plus the
+  bounded `playlist-icon-raster`. Round 2: 5F.4-5F.9 and W5.3F pass; corpus realm soft faults 7,947 in
+  80 skins → 7,923 in 64; R0 Headspace's ledger is empty, so its preset save on close happens. 5F.10 and
+  W5.4F outcomes are not recorded. [W l.1206-1213, l.1237-1238, l.1261-1262]
+- G5 (pending, criteria only): all W5.1 checks `--strict` in both configs at DPR 1 and 2; WebKit pass
+  reviewed; G-WK; full in-app smoke checklist in engine mode; Headspace's ledger lists only
+  `pl.setColumnResizeMode` and `video` stubs. [W l.1278-1287]
+- Owner-visible faithful consequences are accepted under P 0.1 rule 1 (~811 px around the transport
+  buttons, the 13 px preset title, reset 2 px higher); the sidecar `compat` mechanism can promote any to
+  a per-skin faithful setting if the owner prefers. [E §9]
+- Appendix A acceptance facts: `headspace.wms` sha1 `2870d4b1…` (UTF-16LE with BOM, 523 lines),
+  `headspace.js` sha1 `073d4ffb…` (cp1252, 147 lines); 1 VIEW 760×394, 23 SUBVIEWs, 69 elements, 25
+  `jscript:`, 18 `wmpprop:`, 2 `wmpenabled:` values; reset at (140, 127); animations 120 ms linear, EQ
+  ear at 60 ms ≈ x 103. [E App. A]
+
+### Process
+
+- ENGINE.md is the contract; WAVES.md is the plan; where they disagree ENGINE wins and the
+  disagreement goes to Opus. **S** (Sonnet) implements; **O** (Opus) owns design, contracts, gates,
+  re-pins, triage and sign-off; every S task ends with an O review against its card. [E header; W l.4-5,
+  l.18-20]
+- Task rules: never touch pinned files (except W3.R, W6.2), `contracts.d.ts`, `package.json`,
+  `package-lock.json` or another task's files in the same wave; the art rule with a
+  `git status --porcelain --untracked-files=all` check after every acceptance run; `npm run check` for
+  every JS task and `cargo test -p headcore` for every Rust task; art-dependent tests skip; every
+  skin-keyed lookup gets a `__proto__`/`constructor` test; contract changes stop the task. [W l.24-43]
+- Every wave ends with an Opus gate running `npm run check`, `npm test`, `npm run corpus` (owner
+  machine), `cargo test -p headcore`, `npm run skinlab -- verify-legacy` (until cutover), the art-rule
+  check and a diff-against-card review. [W l.45-48]
+- Only O blesses goldens, adds allow-list entries (a 5F fix task may not) and edits `contracts.d.ts`;
+  5F fix tasks are cut one per root cause, own the modules they edit, and pass "the named command exits
+  0 and every previously green command stays green". [E D9, §9; W l.1196-1202]
+- Owner policy, recorded at 5F: **working first, refine later**. [W l.1206]
+- Wall-clock-asserting realm tests run in the sequential `timing` vitest project (`npm test` = `unit`
+  then `timing`); the `corpus` project is not part of `npm test`. Timing tests (realm memory DOS-1,
+  faults DOS-5, scan-api linearity) flake only under multi-agent load; G5 runs them with nothing else
+  running. [W l.713-714, l.1264-1266, l.1276]
+- Within a wave no file has two owners; gates edit ENGINE.md, `allowlist.json` bounds, `states.mjs`
+  points (G2) and the manifest through `bless` (but see Conflicts: O edited other files at G4, G5 and 5F
+  round 2). [W l.1396-1397]
+
+---
+
+### Conflicts found at promotion, and their rev 1.0 rulings
+
+Found by the rev 1.0 extraction. The ruling for each follows the list; "fixed in place" means the body text now carries a `(rev 1.0)` marker.
+
+1. **Realm instance granularity.** E §0 item 1 and E D1 "Instances and contexts" say one module
+   instance, runtime and context per VIEW (corrected 2026-10-07). Still stale: E §0.1 D1 grafts
+   "per-session instance"; E D1 fault-domain "A new session always gets a fresh instance"; W l.519-520
+   (W2.2) "one module instance per session". W l.711-712 (G2) "W4.1 keys realms and dispatchers per
+   session" is about handle collisions and may also need rewording.
+2. **Balance order and host quantisation.** E D6 `player.settings` row and E D11 "Balance" describe
+   only the ±5 detent; 5F.4 (W l.1217, ratified W l.1238-1239) rounds to an integer first, and also
+   rounds EQ gains and volume in both hosts (P D31). E has no text for host quantisation beyond D2's
+   "values stay continuous inside the control (D31)".
+3. **Theme view verbs.** E D6 `theme` row ("`currentViewID` (read)"; `openView`/`openViewRelative`/
+   `closeView` "log and no-op for views other than the current one") and E D6.5 ("`theme.openView`
+   loops: phase 1: current view only") contradict 5F.6 (W l.1227, ratified l.1239-1241). Inside WAVES,
+   the 5F.6 card says "`theme.openView`/`closeView` of the main view" switches; the ratified reading is
+   `openView` only, from a no-area view, and every corpus `closeView` targets a secondary view.
+   `src/engine/model/objects/theme.js:144-151` never hands over on `closeView`: it treats
+   `closeView(<current view>)` as `view.close()` under the gesture rule, which no ENGINE or WAVES text
+   states.
+4. **Realm fault classes (G2.F4 card vs E D1 G2 rulings).** W l.743 item 8: DOS-6 "an OOM or stack
+   overflow caught by skin try/catch still ends the entry as a hard fault" vs E D1 "A stack overflow
+   that skin code catches is ordinary skin behaviour"; DOS-8/S2 "jobs left after the drain cap are
+   dropped" vs E D1 "run as their own `jobs` entry … QuickJS has no API to discard pending jobs"; F5
+   "classify OOM only from QuickJS's own signal" vs E D1 "Memory is read from the heap only …
+   `setMemoryLimit` is not used". Tests follow ENGINE (`tests/engine/realm/faults.test.js:70`,
+   `tests/engine/realm/memory.test.js:81-108`).
+5. **Compat gate wording.** E D9 gate 1 and W l.1139-1140 (W5.1 acceptance 1) say compat has "zero
+   differing pixels outside the effects-hole exclusion"; E §9 now has entries that absorb compat pixels
+   (`reset-underline-raster` compat; `legacy-viz-mask-bleed-left/right`, `legacy-track-smoothing`,
+   `playlist-icon-raster` both).
+6. **Pinned-file list.** W l.26-28 (global rule 1) still lists `src-tauri/src/clickthrough.rs`, and
+   W0.1 acceptance 5 (W l.101) says "the eleven files"; E §1 rule 8 says ten, `clickthrough.rs` removed
+   at G3 and deleted. E Conventions still says code is cited "against HEAD `1c68557` (the oracle pin of
+   `parity` line 18 still holds)", while W3.R acceptance 5 (W l.919-920) and E Appendix A say that pin
+   table is superseded by `pins.mjs` plus the manifest.
+7. **`res://` value class.** E D5 says `res://` applies to "string attributes"; the G1 ruling (W l.420-421)
+   accepts it on image attributes as well.
+8. **Contracts text vs `contracts.d.ts`.** E §5 says W0.1 wrote §5 "verbatim", but §5 was not amended
+   for the additive G1-G3 changes: e.g. §5.3 `Origin` lacks `'quiet'`
+   (`src/engine/contracts.d.ts:93`), §5.5 `EventInit` lacks `screenWidth`/`screenHeight` (`:227`, while
+   E D6's `event` row lists them), §5.6 `MediaState` lacks `queuePos` (`:267`), §5.1 lacks `ArchiveError`
+   (`:39`), graph deps lack `queueEvent` (`:234`).
+9. **`event.keyCode`.** E D6 `event` row: "`keyCode` is the Windows virtual-key code mapped from
+   `KeyboardEvent.code`"; G3 (W l.934-935): `keypress` carries the character code, keydown/keyup the VK.
+10. **Property called as a method.** The G3 ruling (W l.939-940) and G3.F4's acceptance (W l.963: "0
+    TypeErrors of the `effectType()`/`effectPreset()` kind") read as solved; E §11.2 says the realm proxy
+    still makes `x.prop()` throw, 28 corpus `jscript:` faults remain, phase 3.
+11. **Notice colour fallback.** E D10.3 "the skin's first TEXT `foregroundColor`" vs G3.F5 (W l.968)
+    "the first TEXT with a declared `foregroundColor`".
+12. **Status lines.** E line 3 and W line 3 say "Nothing is implemented or committed"; git history has
+    waves 0-4 committed and wave 5/5F in the working tree.
+13. **Gate edit scope.** W l.1396-1397: "Gates edit only ENGINE.md, `allowlist.json` bounds,
+    `states.mjs` points (G2) and the manifest through `bless`". O also edited
+    `tools/skinlab/vite.config.js` at G4 (W l.1067-1068), the Headspace sidecar at G5 (W l.1208) and
+    `tests/engine/model/objects-elements.test.js:453` in 5F round 2 (W l.1237-1238). Likewise E §1
+    rule 8 says pinned files are edited "only in the Opus re-pin batch (WAVES W3.R) and at cutover", but
+    G3.F6 (W l.971-973), an O card at gate G3, removed `clickthrough.rs` from the pins, deleted it and
+    re-blessed.
+14. **Unrecorded outcomes.** 5F.10 (including part (b): size-less SUBVIEWs with a clip mask vs R10's
+    "size-less SUBVIEWs do not clip"), W5.4F, the W3.R in-app CSP check (whether R14's fallback was
+    needed), the stack cap re-measurement in WKWebView (E §10), and G5 are not recorded anywhere in
+    the sources.
+15. **U-7 scope and count.** `wms-spec.md` U-7 counts `clippingImage` 37 times on every element and
+    says "honour" `passThrough`, `clippingImage`, `enabled`, `onclick` on SUBVIEW; E D2 cites U-7 only for
+    `passThrough`; 5F.10 counts 32 SUBVIEW tags in 342 archives / 19 in 195 distinct skins. The spec text
+    is not amended.
+16. **Gate coverage gap (not a text conflict).** The W3.R guard ratified at G3 that refuses CR, LF and
+    NUL in `mpd` arguments (W l.940-941) is tested in the app crate (`src-tauri/src/lib.rs`, test
+    `a_line_break_in_an_argument_cannot_smuggle_a_second_command`), but the per-gate command is
+    `cargo test --manifest-path src-tauri/Cargo.toml -p headcore` (W l.36-37, l.47), which does not run
+    it; only W3.R and G3.F6 acceptance ran a plain `cargo test` in `src-tauri`.
+
+**Rev 1.0 rulings on the conflicts above.**
+
+1. Realm instance: fixed in place (§0.1, D1 fault domain, WAVES W2 card): one module instance, runtime and context per VIEW.
+2. Quantisation: fixed in place (D6 `player.settings`): both hosts round volume, EQ gains and balance to integers; balance rounds, then the ±5 detent.
+3. View verbs: fixed in place (D6 `theme` row, §9 `openView` loops row). The 5F.6 card's "closeView switches" is superseded by its ruling and `theme.js`: `closeView` never switches views.
+4. G2.F4 card vs ENGINE D1: ENGINE's G2 rulings govern, and the tests follow them; the card text is superseded.
+5. D9 gate 1: fixed in place; compat may differ inside §9 entries whose config column includes compat.
+6. Pinned-file count and oracle pin: fixed in place (WAVES rule 1; ENGINE Conventions). W0.1's "eleven files" is its historical acceptance and stays.
+7. `res://` on image attributes: fixed in place (D5).
+8. §5 vs `contracts.d.ts`: ruled in place; `contracts.d.ts` is the contract of record.
+9. `event.keyCode` on `keypress`: fixed in place (D6).
+10. Property-as-method: not a conflict. G3/G3.F4 did the host half; the realm half stays phase 3 (§11.2) and is open (§19).
+11. Notice colour: fixed in place (D10): the first TEXT with a declared `foregroundColor`.
+12. "Nothing is implemented": fixed in place (headers of ENGINE and WAVES).
+13. Gate edit scope: ruled. To clear a block, the project head may edit any file it names in that gate's ruling paragraph (WAVES ownership rules amended); pinned files change only in W3.R (completed at G3 by G3.F6) and at cutover (§1 rule 8 amended).
+14. Unrecorded outcomes: 5F.10 and W5.4F are recorded in WAVES ("Round 2 results", "G5 results"); 5F.10 (b) counted 0 size-less masked SUBVIEWs (§19); the W3.R in-app CSP check and the WKWebView stack re-measure are open (§19).
+15. U-7 scope: fixed in place (D2 picker note).
+16. MPD argument guard tests: W6.2's `cargo test` runs the whole `src-tauri` workspace, so the app-crate tests in `lib.rs` run at cutover; per-wave gates keep `-p headcore` (§19 asks whether to widen them).
