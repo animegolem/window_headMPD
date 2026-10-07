@@ -5,7 +5,7 @@ engine/host seam, and the path to the agent-written theming language.
 
 | **STATUS**                         | **REVISION** | **LAST UPDATED** |
 |------------------------------------|--------------|------------------|
-| Ratified; phase 1 at G5 (owner items open) | 1.1 | 2026-10-07 |
+| Ratified; phase 1 at G5 (owner items open) | 1.2 | 2026-10-07 |
 
 > **WORKING PRODUCT STATEMENT**
 >
@@ -2258,7 +2258,11 @@ The full set goes to Astra as language user stories after the wave-5 commit.
 
 MPD stays the server for phase 1 and 2, reached only through `MediaModel` (D6). Replacing it with
 our own C API server (parametric EQ, formally verified EQ math, a standalone "Winamp, but better")
-is under research in `docs/research/music-server/` (rev 1.0); nothing about it is ruled yet.
+is under research in `docs/research/music-server/` (rev 1.0); nothing about it is ruled yet. The
+research landed at rev 1.2 (`docs/research/music-server/README.md`, all-Sonnet wave, 2026-10-07): it
+recommends EQ tonight through MPD's own ffmpeg filter (MPD 0.24.15 links libavfilter, verified), and a
+C11 server beside MPD on port 6601 (T1 "Ears", T2 "Daily", T3 "Cutover"). Its 11 owner decisions are
+open (§19).
 
 ### 15.6 Rendering consultation (Genga, round 1, rev 1.1)
 
@@ -2698,6 +2702,9 @@ Phase 1 ends when every D10.9 criterion holds. Standing at rev 1.0:
     cross-test them.
 12. **The shared oracle schema** (rev 1.1): where it lives and who drafts it (Genga offers to draft
     with us).
+13. **The music server's owner decisions** (rev 1.2): the 11 in `docs/research/music-server/README.md`
+    §6, led by the headphone model on the jack, locking MPD to loopback (it listens on every interface
+    with no password today, verified), the scratch-MPD test, and Drive Stream vs Mirror.
 
 ## 20. Decision summary  <!-- CONSTITUTIONAL -->
 
