@@ -5,7 +5,7 @@ engine/host seam, and the path to the agent-written theming language.
 
 | **STATUS**                         | **REVISION** | **LAST UPDATED** |
 |------------------------------------|--------------|------------------|
-| Ratified; phase 1 at G5 (owner items open) | 1.2 | 2026-10-07 |
+| Ratified; phase 1 at G5 (owner items open) | 1.3 | 2026-10-07 |
 
 > **WORKING PRODUCT STATEMENT**
 >
@@ -2262,7 +2262,10 @@ is under research in `docs/research/music-server/` (rev 1.0); nothing about it i
 research landed at rev 1.2 (`docs/research/music-server/README.md`, all-Sonnet wave, 2026-10-07): it
 recommends EQ tonight through MPD's own ffmpeg filter (MPD 0.24.15 links libavfilter, verified), and a
 C11 server beside MPD on port 6601 (T1 "Ears", T2 "Daily", T3 "Cutover"). Its 11 owner decisions are
-open (§19).
+open (§19). Rev 1.3, owner rulings: the MPD-filter route ("tonight") is dropped; MPD's open LAN port is
+intentional; the replacement is audiod, ruled by its own constitution `~/git/audiod/SPEC.md`
+(SPEC-0001), pending Notan's sign-off. This engine keeps reaching media only through `MediaModel`
+(D6), which will speak to audiod through its MPD shim first and its hooks later.
 
 ### 15.6 Rendering consultation (Genga, round 1, rev 1.1)
 
@@ -2703,8 +2706,9 @@ Phase 1 ends when every D10.9 criterion holds. Standing at rev 1.0:
 12. **The shared oracle schema** (rev 1.1): where it lives and who drafts it (Genga offers to draft
     with us).
 13. **The music server's owner decisions** (rev 1.2): the 11 in `docs/research/music-server/README.md`
-    §6, led by the headphone model on the jack, locking MPD to loopback (it listens on every interface
-    with no password today, verified), the scratch-MPD test, and Drive Stream vs Mirror.
+    §6. Closed at rev 1.3: the LAN port stays open (owner: intentional); the MPD-filter route and its
+    scratch test are dropped. The rest moved to audiod's SPEC §13 (name, licence, app stack, EQ design
+    default, the headphone model).
 
 ## 20. Decision summary  <!-- CONSTITUTIONAL -->
 
