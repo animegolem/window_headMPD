@@ -1,0 +1,83 @@
+{
+  "schema": "window_headmpd-skinlab-allowlist/1",
+  "about": "The deviations allow-list of E 9 (Headspace, phase 1). A new difference is either an engine bug or a new entry added by Opus, never by an implementing task. Regions are in SKIN px; a rect is half-open [x0,x1) x [y0,y1) (the EQ ear's closed and open rects union to (0,86)-(476,256), so the end is exclusive). A bound is the most skin px the entry may absorb: a number, null (measure mode: report and pass; check --strict fails) or \"rect-area\" (the rect's own area). exact means the count must equal the bound and the region's size. Computed regions come from regions.mjs (art-derived at run time, so no art coordinates live here) except faithful-xor-compat, which cmd-check derives from the two engine configurations' masks.",
+  "entries": [
+    {
+      "id": "effects-hole",
+      "kind": "pixel-exclusion",
+      "configs": ["compat", "faithful"],
+      "states": "all",
+      "region": { "kind": "computed", "generator": "effects-hole" },
+      "bound": 31487,
+      "exact": true,
+      "ref": "parity 4.1, parity 0.3",
+      "why": "the visualizer is stubbed differently on each side: head.bmp's #FF00FF pixels at the head's offset are not compared"
+    },
+    {
+      "id": "U-23-showBackground",
+      "kind": "pixel",
+      "configs": ["faithful"],
+      "states": "all",
+      "region": { "kind": "computed", "generator": "unowned-buttongroup" },
+      "bound": null,
+      "exact": false,
+      "ref": "U-23, spec 6.5",
+      "why": "the engine follows the docs (BUTTONGROUP pixels no mappingColor owns are not painted); the oracle paints them. Measured at G4: spec 6.5 predicts about 811 in the transport group and 1 in min/close"
+    },
+    {
+      "id": "D20-reset-y",
+      "kind": "pixel",
+      "configs": ["faithful"],
+      "states": ["S2", "S2b"],
+      "region": { "kind": "rect", "rect": [222, 221, 258, 238] },
+      "bound": "rect-area",
+      "exact": false,
+      "ref": "parity D20",
+      "why": "the engine puts the reset label at eq1.top + 83 = 127; the oracle at 129"
+    },
+    {
+      "id": "D21-preset-title",
+      "kind": "pixel",
+      "configs": ["faithful"],
+      "states": ["S4"],
+      "region": { "kind": "rect", "rect": [321, 65, 426, 82] },
+      "bound": "rect-area",
+      "exact": false,
+      "ref": "parity D21",
+      "why": "the engine uses the 10 pt default (13 px) for the preset title; the oracle 9 px"
+    },
+    {
+      "id": "U-10-slider-travel",
+      "kind": "pixel",
+      "configs": ["faithful"],
+      "states": "all",
+      "region": { "kind": "computed", "generator": "sliders" },
+      "bound": 0,
+      "exact": false,
+      "ref": "U-10, parity D32",
+      "why": "sliderGeometry is 'oracle' in both configurations, so nothing may be absorbed; the entry exists so flipping the switch comes with its region (the region lists the sliders whose position is literal in the .wms: it is advisory while the bound is 0, because any pixel it would absorb fails against the bound or lies outside every region)"
+    },
+    {
+      "id": "D11-screen-corners",
+      "kind": "mask",
+      "configs": ["compat", "faithful"],
+      "states": "all",
+      "region": { "kind": "computed", "generator": "screen-corners" },
+      "bound": 106,
+      "exact": true,
+      "ref": "parity D11, parity 4.1",
+      "why": "the oracle counts the effects canvas as a solid rect, so its mask has the screen's 106 clipped corner bits that the engine's does not"
+    },
+    {
+      "id": "button-transparency",
+      "kind": "mask",
+      "configs": ["faithful"],
+      "states": "all",
+      "region": { "kind": "computed", "generator": "faithful-xor-compat" },
+      "bound": null,
+      "exact": false,
+      "ref": "spec 2.7, E 2 window shape",
+      "why": "a BUTTON receives clicks on its transparent keyed pixels; the oracle's alpha mask does not. Defined at check time as faithfulMask XOR compatMask; measured at G4 (a judge measured 130 EQ handle + 135 PL handle, about 265 per state)"
+    }
+  ]
+}

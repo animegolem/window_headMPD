@@ -10,7 +10,7 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 import { skip, usageError } from './exit.mjs';
 import { SKINLAB_DIR } from './paths.mjs';
-import { BOOT_QUIET_MS, CLIP, PARK, POINTS, SETTLE, STATES, VIEWPORT } from './states.mjs';
+import { BOOT_QUIET_MS, CLIP, PARK, SETTLE, STATES, VIEWPORT, resolveStep } from './states.mjs';
 import { maskStats, sha256Hex } from './store.mjs';
 
 const require = createRequire(import.meta.url);
@@ -195,10 +195,17 @@ export async function driveState(page, watch, baseUrl, state) {
   await page.mouse.move(PARK.x, PARK.y); // no hover in S1, and the same starting pointer everywhere
   await armSettle(page, state.settle);
   for (const step of state.steps) {
-    const at = POINTS[step.click];
-    await page.mouse.click(at.x, at.y);
-    // Park straight away: the ear slides under the pointer and would otherwise light up a band.
-    await page.mouse.move(PARK.x, PARK.y);
+    const { kind, at } = resolveStep(step);
+    if (kind === 'click') {
+      await page.mouse.click(at.x, at.y);
+      // Park straight away: the ear slides under the pointer and would otherwise light up a band.
+      await page.mouse.move(PARK.x, PARK.y);
+    } else {
+      // move and down leave the pointer where it is (no park): the hover or pressed art is the state.
+      // down is never released; the fresh context per capture ends it, and the legacy acts on pointerup.
+      await page.mouse.move(at.x, at.y);
+      if (kind === 'down') await page.mouse.down();
+    }
   }
   if (state.settle.kind !== 'none') {
     await withTimeout(page.evaluate(() => window.__skinlabWait), SETTLE.transitionTimeoutMs, `${state.id}: ${state.settle.kind} of ${state.settle.selector}`);

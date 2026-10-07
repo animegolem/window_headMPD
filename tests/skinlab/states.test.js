@@ -18,24 +18,32 @@ import {
   EMULATED_MASKS,
   PARK,
   POINTS,
+  S5_POINTS,
   SETTLE,
   SKIN_SIZE,
   STATES,
+  STEP_KINDS,
   VIEWPORT,
   parseDprs,
   parseStateIds,
+  resolveStep,
 } from '../../tools/skinlab/states.mjs';
+import { computeRegions } from '../../tools/skinlab/regions.mjs';
+import { describeHeadspace } from '../support/fixtures.js';
+
+const S5_NAMES = ['g0.minimize', 'g0.close', 'g1.prev', 'g1.play', 'g1.stop', 'g1.next', 'g1.vis'];
+const S5_IDS = S5_NAMES.flatMap((n) => [`S5.${n}.hover`, `S5.${n}.down`]);
 
 describe('the state table', () => {
   it('has the legacy-side states of E D9, in order', () => {
-    expect(DEFAULT_STATE_IDS).toEqual(['S1', 'S2', 'S3', 'S3b', 'S4', 'S6', 'S7']);
+    expect(DEFAULT_STATE_IDS).toEqual(['S1', 'S2', 'S3', 'S3b', 'S4', ...S5_IDS, 'S6', 'S7']);
     expect(DEFAULT_STATE_IDS).toEqual([...STATES.keys()]);
   });
 
   it('only references media presets and click points that exist', () => {
     for (const s of STATES.values()) {
       expect(hasMediaPreset(s.media), `${s.id} media`).toBe(true);
-      for (const step of s.steps) expect(Object.hasOwn(POINTS, step.click), `${s.id} ${step.click}`).toBe(true);
+      for (const step of s.steps) expect(() => resolveStep(step), `${s.id} ${JSON.stringify(step)}`).not.toThrow();
     }
   });
 
@@ -63,11 +71,88 @@ describe('the state table', () => {
     const s7 = STATES.get('S7');
     expect(s7.reportOnly).toBe(true);
     expect(s7.settle).toMatchObject({ kind: 'freeze', atMs: 60, selector: '.ear', property: 'left' });
-    for (const s of STATES.values()) if (s.id !== 'S7') expect(s.reportOnly, s.id).toBe(false);
+    for (const s of STATES.values()) if (s.id !== 'S7' && !s.id.startsWith('S5.')) expect(s.reportOnly, s.id).toBe(false);
   });
 
   it('table entries are frozen', () => {
     for (const s of STATES.values()) expect(Object.isFrozen(s)).toBe(true);
+  });
+});
+
+describe('S5 hover and press states (E D9, supplemental)', () => {
+  it('has a hover and a pressed state for each of the 7 regions.mjs points, between S4 and S6', () => {
+    expect(Object.keys(S5_POINTS)).toEqual(S5_NAMES);
+    expect(DEFAULT_STATE_IDS.filter((id) => id.startsWith('S5.'))).toEqual(S5_IDS);
+    const ids = [...STATES.keys()];
+    expect(ids.indexOf('S5.g0.minimize.hover')).toBe(ids.indexOf('S4') + 1);
+    expect(ids.indexOf('S5.g1.vis.down')).toBe(ids.indexOf('S6') - 1);
+  });
+
+  it('hover moves the pointer there, pressed holds the button down, on the stopped empty player (stop: playing)', () => {
+    for (const name of S5_NAMES) {
+      const hover = STATES.get(`S5.${name}.hover`);
+      const down = STATES.get(`S5.${name}.down`);
+      expect(hover.steps, hover.id).toEqual([{ move: name }]);
+      expect(down.steps, down.id).toEqual([{ down: name }]);
+      for (const s of [hover, down]) {
+        // The legacy disables stop while stopped, so only a playing capture shows its hover and pressed art.
+        expect(s.media, s.id).toBe(name === 'g1.stop' ? 'playing' : 'stoppedEmpty');
+        expect(s.settle, s.id).toEqual({ kind: 'none' });
+        expect(s.reportOnly, s.id).toBe(true);
+      }
+    }
+  });
+
+  it('pins the 7 points as printed by regions.mjs', () => {
+    expect(S5_POINTS).toEqual({
+      'g0.minimize': { x: 369, y: 12 },
+      'g0.close': { x: 384, y: 12 },
+      'g1.prev': { x: 321, y: 43 },
+      'g1.play': { x: 346, y: 43 },
+      'g1.stop': { x: 372, y: 43 },
+      'g1.next': { x: 397, y: 43 },
+      'g1.vis': { x: 439, y: 43 },
+    });
+    for (const p of Object.values(S5_POINTS)) {
+      expect(p.x).toBeLessThan(PARK.x);
+      expect(p.y).toBeLessThan(PARK.y);
+    }
+  });
+
+  it('keeps S5 ids out of the bare "S5" spelling: ids are explicit', () => {
+    expect(() => parseStateIds('S5')).toThrow(/unknown state/);
+    expect(parseStateIds('S5.g1.play.down,S5.g1.play.hover,S1')).toEqual(['S1', 'S5.g1.play.hover', 'S5.g1.play.down']);
+  });
+
+  describeHeadspace('against the computed regions', (headspace) => {
+    it('S5_POINTS equal the points computeRegions derives from the skin', async () => {
+      const regions = await computeRegions(headspace.bytes(), { name: 'Headspace.wmz' });
+      const computed = Object.fromEntries(regions.s5.map((p) => [`g${p.group}.${p.label}`, { x: p.x, y: p.y }]));
+      expect(S5_POINTS).toEqual(computed);
+    });
+  });
+});
+
+describe('the step vocabulary', () => {
+  it('has click, move and down', () => {
+    expect(STEP_KINDS).toEqual(['click', 'move', 'down']);
+  });
+
+  it('resolves click against POINTS, and move and down against POINTS or S5_POINTS', () => {
+    expect(resolveStep({ click: 'eqHandle' })).toEqual({ kind: 'click', name: 'eqHandle', at: POINTS.eqHandle });
+    expect(resolveStep({ move: 'g1.play' })).toEqual({ kind: 'move', name: 'g1.play', at: S5_POINTS['g1.play'] });
+    expect(resolveStep({ down: 'g1.play' })).toEqual({ kind: 'down', name: 'g1.play', at: { x: 346, y: 43 } });
+    expect(resolveStep({ move: 'eqHandle' }).at).toEqual(POINTS.eqHandle);
+  });
+
+  it('refuses a click on an S5 point, unknown points, Object.prototype names and anything but one kind', () => {
+    expect(() => resolveStep({ click: 'g1.play' })).toThrow(/unknown point/);
+    for (const bad of ['nope', '__proto__', 'constructor', 'toString']) {
+      for (const kind of STEP_KINDS) expect(() => resolveStep({ [kind]: bad }), `${kind} ${bad}`).toThrow(/unknown point/);
+    }
+    expect(() => resolveStep({})).toThrow(/exactly one/);
+    expect(() => resolveStep({ move: 'g1.play', down: 'g1.play' })).toThrow(/exactly one/);
+    expect(() => resolveStep({ move: 42 })).toThrow(/unknown point/);
   });
 });
 

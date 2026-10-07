@@ -1,10 +1,11 @@
 // @ts-check
 // RG0 item 7 (ENGINE D1, WAVES W1.4): every inline handler of the distinct WMP corpus compiles in
-// QuickJS with exactly the five known failures of survey 5.2, and every script file compiles except the
-// seven pinned call-assignment files below (G1 ruling; W2.2 item 10 makes the loader rewrite them and
-// flips the script expectation to 219/219). Handlers come from the throwaway entity-decoding extractor
-// next to the realm-gate tests, as the survey's did, so this gate does not wait for the scanner (W1.2)
-// or the archive reader (W1.1).
+// QuickJS with exactly the five known failures of survey 5.2, and all 219 script files compile through
+// the realm loader's repair step (W2.2 item 10, E R20): seven files assign to a call result once each,
+// which QuickJS rejects while parsing, and the loader rewrites exactly that statement to throw at run
+// time. Raw, those seven still fail, and the case below pins them. Handlers come from the throwaway
+// entity-decoding extractor next to the realm-gate tests, as the survey's did, so this gate does not
+// wait for the scanner (W1.2) or the archive reader (W1.1).
 //
 //   npm run corpus -- realm-gate
 //
@@ -14,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { describeCorpus } from '../support/fixtures.js';
 import { extractCorpus } from '../realm-gate/extract-handlers.mjs';
 import { VARIANT_NAME, newInstance } from '../realm-gate/qjs.js';
+import { repairScript } from '../../src/engine/realm/realm.js';
 
 /** Survey 5.2: 219 scripts, 12,868 handler attributes in 195 distinct archives, 5 failures. */
 const EXPECTED = { archives: 195, scripts: 219, handlers: 12868, empty: 128, failures: 5 };
@@ -24,13 +26,13 @@ const KNOWN_FAILURES = {
 };
 
 /**
- * The seven script files QuickJS cannot compile, pinned by archive and file name, sorted by archive then
- * file in code-unit order (so `Revert (1).wmz` precedes `Revert.wmz`). Each holds one statement that
- * assigns to a call expression (the case below proves it). W2.2 item 10 (E R20) adds the loader's
- * rewrite; when it lands, this list becomes `[]` and the script case asserts 219 of 219.
+ * The seven script files QuickJS cannot compile as written, pinned by archive and file name, sorted by
+ * archive then file in code-unit order (so `Revert (1).wmz` precedes `Revert.wmz`). Each holds one
+ * statement that assigns to a call expression; the realm loader rewrites it (E R20), so every one of
+ * them loads. No script fails after the repair.
  * @type {ReadonlyArray<readonly [archive: string, file: string]>}
  */
-const KNOWN_SCRIPT_FAILURES = [
+const REWRITTEN_SCRIPTS = [
   ['Charlies_Angels_Full_Throttle.wmz', 'charlies Angels.js'],
   ['Revert (1).wmz', 'netgen.js'],
   ['Revert.wmz', 'netgen.js'],
@@ -87,13 +89,11 @@ describe('the compile check itself', () => {
 /**
  * The one pattern that stops 7 scripts compiling: assignment to a call expression, `eq.gainLevels(band) =
  * value;` and `theme.savePreference('k') = '--';`. V8 (the survey's engine) accepts it and throws a
- * ReferenceError only if it runs; QuickJS, bellard's and ng's alike, rejects it while parsing, so the whole
- * script file is lost. Rewriting the statement to an ordinary call makes it compile; that rewrite is the
- * proof that these statements are the only incompatibility, not a proposed implementation.
+ * ReferenceError only if it runs; QuickJS, bellard's and ng's alike, rejects it while parsing, so without
+ * the loader's repair the whole script file would be lost. This regex only measures where the pattern
+ * occurs; the repair itself is the realm's `repairScript`, the same code `loadScript` runs.
  */
 const CALL_ASSIGNMENT = /^(\s*)([A-Za-z_$][\w$.]*\([^()\n]*\))[ \t]*=(?!=)[ \t]*([^;\n]+);/gm;
-/** @param {string} source */
-const rewriteCallAssignments = (source) => source.replace(CALL_ASSIGNMENT, '$1__badLhs($2, $3);');
 
 /**
  * @typedef {Object} Scan
@@ -101,11 +101,12 @@ const rewriteCallAssignments = (source) => source.replace(CALL_ASSIGNMENT, '$1__
  * @property {number} scripts
  * @property {number} handlers
  * @property {number} empty
- * @property {Array<{ archive: string, file: string, where: string, source: string, message: string }>} scriptFailures
+ * @property {Array<{ archive: string, file: string, where: string, source: string, message: string }>} scriptFailures   raw compile failures
+ * @property {Array<{ archive: string, file: string, where: string, rewrites: number, statements: string[] }>} repaired   files the loader rewrote
+ * @property {Array<{ where: string, message: string }>} lost   files that fail even after the repair (expected none)
  * @property {Array<{ archive: string, tag: string, attr: string, message: string }>} handlerFailures
  * @property {number} asIs
  * @property {number} rescued
- * @property {Array<{ where: string, rewrittenCompiles: boolean, statements: number }>} rewrites
  * @property {number} compliantScriptsWithThePattern   scripts that compile and still contain the pattern (expected 0)
  */
 
@@ -125,19 +126,27 @@ async function scanCorpus(corpus) {
   try {
     /** @type {Scan['scriptFailures']} */
     const scriptFailures = [];
-    /** @type {Scan['rewrites']} */
-    const rewrites = [];
+    /** @type {Scan['repaired']} */
+    const repaired = [];
+    /** @type {Scan['lost']} */
+    const lost = [];
     let compliantScriptsWithThePattern = 0;
     for (const s of scripts) {
       const where = `${s.archive}!${s.file}`;
       const r = inst.compile(s.source, where);
-      const statements = [...s.source.matchAll(CALL_ASSIGNMENT)].length;
       if (r.ok) {
-        if (statements) compliantScriptsWithThePattern++;
-        continue;
+        if (CALL_ASSIGNMENT.test(s.source)) compliantScriptsWithThePattern++;
+        CALL_ASSIGNMENT.lastIndex = 0;
+      } else {
+        scriptFailures.push({ archive: s.archive, file: s.file, where, source: s.source, message: `${r.error.name}: ${r.error.message}` });
       }
-      scriptFailures.push({ archive: s.archive, file: s.file, where, source: s.source, message: `${r.error.name}: ${r.error.message}` });
-      rewrites.push({ where, statements, rewrittenCompiles: inst.compile(rewriteCallAssignments(s.source), where).ok });
+      // The loader's own repair, driven by the same compile-only check the realm uses.
+      const fixed = repairScript(s.source, (src) => {
+        const c = inst.compile(src, where);
+        return c.ok ? null : c.error;
+      });
+      if (fixed.error) lost.push({ where, message: `${fixed.error.name}: ${fixed.error.message}` });
+      if (fixed.rewrites.length) repaired.push({ archive: s.archive, file: s.file, where, rewrites: fixed.rewrites.length, statements: fixed.rewrites.map((w) => w.statement) });
     }
 
     /** @type {Scan['handlerFailures']} */
@@ -156,14 +165,15 @@ async function scanCorpus(corpus) {
     for (const f of handlerFailures) buckets.set(f.message, (buckets.get(f.message) ?? 0) + 1);
     console.info(
       `RG0-REPORT item 7 (${VARIANT_NAME}): ${extracted.archives.length} distinct archives; ` +
-        `${scripts.length} scripts, ${scripts.length - scriptFailures.length} compile, ${scriptFailures.length} fail [${scriptFailures.map((f) => f.where).join('; ')}]; ` +
+        `${scripts.length} scripts, ${scripts.length - scriptFailures.length} compile as written, ${scriptFailures.length} fail raw [${scriptFailures.map((f) => f.where).join('; ')}], ` +
+        `${scripts.length - lost.length} load after the loader's repair (${repaired.length} rewritten: ${repaired.map((f) => `${f.where} '${f.statements.join("', '")}'`).join('; ')}); ` +
         `${handlers.length} handlers (${handlers.filter((h) => h.src === '').length} empty): ${asIs} compile as-is, ${rescued} only after stripping one label, ` +
         `${handlerFailures.length} fail [${[...buckets].map(([m, n]) => `${n} x ${m}`).join('; ')}] in ${[...new Set(handlerFailures.map((f) => f.archive))].join(', ')}`,
     );
 
     return {
       corpus: extracted, scripts: scripts.length, handlers: handlers.length, empty: handlers.filter((h) => h.src === '').length,
-      scriptFailures, handlerFailures, asIs, rescued, rewrites, compliantScriptsWithThePattern,
+      scriptFailures, repaired, lost, handlerFailures, asIs, rescued, compliantScriptsWithThePattern,
     };
   } finally {
     inst.unload();
@@ -192,25 +202,26 @@ describeCorpus('realm gate RG0 item 7: the corpus compiles in QuickJS', (corpus)
     expect(s.handlerFailures.map((f) => f.attr).sort()).toEqual(KNOWN_FAILURES.attrs);
   });
 
-  // G1 ruling: the card's "all 219 compile" was red for these 7 files, and the loader will rewrite their one
-  // offending statement (E R20), so the gate pins the exact list instead. W2.2 item 10 flips this to
-  // 219 of 219 and empties KNOWN_SCRIPT_FAILURES; until then any change to the list, in either direction,
-  // is a finding.
-  it(`scripts: ${EXPECTED.scripts - KNOWN_SCRIPT_FAILURES.length} of ${EXPECTED.scripts} compile; exactly the ${KNOWN_SCRIPT_FAILURES.length} pinned call-assignment files do not (W2.2 item 10 flips this to ${EXPECTED.scripts}/${EXPECTED.scripts})`, async () => {
+  // W2.2 item 10 (E R20): the loader rewrites each call assignment, so every script loads. Any change to the
+  // rewritten list, in either direction, is a finding.
+  it(`scripts: all ${EXPECTED.scripts} of ${EXPECTED.scripts} load through the loader's repair; exactly the ${REWRITTEN_SCRIPTS.length} pinned files needed it`, async () => {
+    const s = await scan();
+    expect(s.lost).toEqual([]);
+    const rewritten = s.repaired
+      .map((f) => /** @type {const} */ ([f.archive, f.file]))
+      .sort((a, b) => byCodeUnit(a[0], b[0]) || byCodeUnit(a[1], b[1]));
+    expect(rewritten).toEqual(REWRITTEN_SCRIPTS);
+    expect(s.scripts - s.lost.length).toBe(EXPECTED.scripts);
+  });
+
+  it('raw, the same files fail, all with one pattern (assignment to a call expression), one statement each', async () => {
     const s = await scan();
     const failed = s.scriptFailures
       .map((f) => /** @type {const} */ ([f.archive, f.file]))
       .sort((a, b) => byCodeUnit(a[0], b[0]) || byCodeUnit(a[1], b[1]));
-    expect(failed).toEqual(KNOWN_SCRIPT_FAILURES);
-    expect(s.scripts - s.scriptFailures.length).toBe(EXPECTED.scripts - KNOWN_SCRIPT_FAILURES.length);
-  });
-
-  it('the script failures are one pattern, assignment to a call expression, and rewriting it makes every script compile', async () => {
-    const s = await scan();
-    expect(s.scriptFailures.length).toBe(KNOWN_SCRIPT_FAILURES.length);
+    expect(failed).toEqual(REWRITTEN_SCRIPTS);
     expect(new Set(s.scriptFailures.map((f) => f.message))).toEqual(new Set(['SyntaxError: invalid assignment left-hand side']));
-    expect(s.rewrites.every((r) => r.rewrittenCompiles)).toBe(true);
-    expect(s.rewrites.map((r) => r.statements)).toEqual(s.rewrites.map(() => 1));    // one statement per file
-    expect(s.compliantScriptsWithThePattern).toBe(0);                                  // the pattern never appears in a script that compiles
+    expect(s.repaired.map((f) => f.rewrites)).toEqual(s.repaired.map(() => 1));        // one statement per file
+    expect(s.compliantScriptsWithThePattern).toBe(0);                                   // the pattern never appears in a script that compiles
   });
 });

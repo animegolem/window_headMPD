@@ -699,6 +699,51 @@ All tasks run in parallel.
 
 ### Gate G2 · O
 
+*G2 rulings (2026-10-07).* Contracts (additive): `buildTheme` opts gain `stacking`; `ObjectGraph`
+gains `objectOf`, `hostGlobals`, `ready` (W2.3's ObjectGraphPlus, now the contract); graph deps gain
+`queueEvent` (script `click()` on BUTTONGROUP/BUTTONELEMENT queues `onclick`, drained FIFO by the
+runtime after the entry returns, like `_onchange`) and `mediacenterPrefs`; `EventInit` gains
+`screenWidth`/`screenHeight`; `MediaState.elapsed` is as of the last status (`elapsed()` extrapolates).
+W4.1's runtime forwards origin-`script` writes of VIEW `width`/`height` to `SkinWindow.requestSize`
+(no boundary exemption for `model/`). Seek and volume coalescing is a **trailing** 40 ms debounce
+(the legacy's `main.js:102-103`), not a fixed batch. `Unnamed_<kind>_<n>` numbers per kind (as
+built). PLAYER handler keys are the lowercased attribute names (`onopenstatechange`). Element
+handles are 1..N per theme; W4.1 keys realms and dispatchers per session, so collisions across
+themes cannot meet. DspPort `onChange` fires only when a stored value changes (both hosts).
+`SlotHandle.hitRects()` is in view px. Realm tests that assert wall-clock bounds run in the
+sequential `timing` vitest project (`npm test` runs `unit` then `timing`). E R19 rewritten with the
+comparison-heavy residual. Fix-ups G2.F1–G2.F3:
+
+#### G2.F1 Realm: string-consumer guard sizing · O · S
+- **Owns**: W2.2's files (`src/engine/realm/{realm,membrane,prelude}.js`, `tests/engine/realm/*` except `wmploc.test.js`, `tests/realm-gate/**`, `tests/corpus/realm-gate.test.js`).
+- **Do**: the W2.2 round-3 reviewer's instructions verbatim: a `stringSizeOf(v)` (string: length; number/boolean/undefined/null/symbol: ≤ 32; any object, function, bigint, array, typed array or proxy: `Infinity`; never reads through the operand) used for every operand a builtin turns into a string (String.prototype receivers including repeat/pad, the `arg` group incl. JSON.parse and the RegExp entries, replace/replaceAll subject and argument); the array-aware `sizeOf` stays for the array/typedarray tables and `spreadSize` for concat; update the GUARDED_BUILTINS comment. Tests: the five lying-`toString`/`Symbol.toPrimitive`/RegExp loop cases are hard faults within budget + 300 ms; small calls still return native results (`String.prototype.indexOf.call([1,2],'2') === 2`, `JSON.parse(['1']) === 1`, `/1/.test([1]) === true`, `'ab'.replace('b',[1]) === 'a1'`).
+- **Acceptance**: `npm test -- tests/engine/realm tests/realm-gate`, `npm run corpus -- realm-gate`, `npm run check`.
+
+#### G2.F2 Object model: clicks, screen size, debounce · S · S
+- **Owns**: W2.3's files (`src/engine/model/{schema,policy,ledger}.js`, `src/engine/model/objects/**`, `tests/engine/model/{schema,policy,ledger,objects*}*`).
+- **Do**: annotate the graph with the amended `ObjectGraph`/`CreateObjectGraphFn` (drop the local ObjectGraphPlus typedef); BUTTONGROUP `click(i)` and BUTTONELEMENT `click()` become live and call `deps.queueEvent(el, 'onclick')` (ledger `stub` when no `queueEvent` is supplied); `event.screenWidth`/`screenHeight` read the new `EventInit` fields; seek/volume coalescing becomes a trailing 40 ms debounce (latest value, sent 40 ms after the last write; rate cap unchanged). Tests for each.
+- **Acceptance**: `npm test -- tests/engine/model`, `npm run check`.
+
+#### G2.F3 DSP onChange on change only · S · S
+- **Owns**: W2.5's files (`src/hosts/tauri/{media,dsp}.js`, `tests/hosts/tauri/{media,dsp}*`).
+- **Do**: the Tauri `DspPort` fires `onChange` only when a stored value actually changes (a detented or clamped write that leaves the value where it was is silent), matching the test host; test it.
+- **Acceptance**: `npm test -- tests/hosts/tauri`, `npm run check`.
+
+#### G2.F4 Realm hardening from the security review · O · M
+- **Owns**: W2.2's files (`src/engine/realm/{realm,membrane,prelude}.js`, `tests/engine/realm/*` except `wmploc.test.js`, `tests/realm-gate/**`, `tests/corpus/realm-gate.test.js`).
+- **Source**: `docs/research/realm-security-review-g2.md` (25 verified findings; each has a repro and the verifier's fix). Apply the verifier's fix unless it conflicts with ENGINE D1, in which case stop and report.
+- **Do** (every item gets a regression test built from its repro, asserting the bound):
+  1. **DOS-1** heap cap: give the QuickJS module a capped `WebAssembly.Memory` (`maximum` from `memoryLimitBytes` plus the variant's initial memory, with the glue's growth margin), assert `getWasmMemory()` identity, and after each entry turn `buffer.byteLength > heapCap` into a hard `memory` fault (poison + discard). Test: the hoard loop ends as a hard memory fault with host RSS growth under ~2× the cap.
+  2. **DOS-2** drain bound: `drainQueue` stops after `budgets.load` ms of wall time with one soft fault and drops the rest.
+  3. **DOS-3 / F3 / S1** compile budget: `REALM_CAPS.maxScriptChars` 1 MiB (soft `script-too-large`); refuse `loadScript` when `scriptsSpent >= budgets.scripts` (hard `budget`, no compile); `repairScript` takes a `stop` callback checked before every compile; a stop or an overrun is a hard `budget` fault, never a syntax diagnostic.
+  4. **DOS-5** overrun: an entry whose wall time passes `deadline + REALM_CAPS.overrunSlackMs` (300) is a hard `budget` fault even with no interrupt poll.
+  5. **DOS-7 / F7** diagnostics: host-side `REALM_CAPS.maxIdWriteDiags` 64 then one `realm-id-write-capped`; the prelude reports only real ids, deduped on the lowercased key. Also cap every other realm-originated diagnostic stream at 64 per view.
+  6. **F1** keys: reject keys and strings over 64 KiB before copying (realm half in the traps; host half reads `length` through `getProp` without `getString`).
+  7. **DOS-4** extend guards (accidental paths only): String.prototype trim/trimStart/trimEnd/normalize/localeCompare/slice/substring/substr/at/concat; a global table for parseFloat, parseInt, encodeURI(Component), decodeURI(Component), escape, unescape; Map/Set has/get/set/add/delete sized by the key. Operators stay a recorded residual (E R19).
+  8. Lows that are cheap: **F2** (`throw <Promise>` must not reach a host use-after-free), **F4** (prelude proxy handler objects null-prototype and frozen), **F5** (classify OOM only from QuickJS's own signal, not a thrown object's name), **DOS-6** (an OOM or stack overflow caught by skin `try/catch` still ends the entry as a hard fault), **DOS-8 / S2** (jobs left after the drain cap are dropped with a soft fault, never run under the next entry), **F8 / S4** (the R20 rewrite takes the position only from QuickJS's own location for this file, and only rewrites a `<call> = <rhs>` shape).
+  9. Record any low you do not fix (S3, S5-S8, DOS-9) as a one-line note in the review doc's header with the reason.
+- **Acceptance**: `npm test -- tests/engine/realm tests/realm-gate`, `npm run corpus -- realm-gate` (219/219 still load), `npm run check`, and every repro in the review doc re-run against the fixed realm with its bound.
+
 - Copy the printed `Unnamed_*` ids into E §D10.6 placeholders (the sidecar itself is created in W3.8).
 - Bless the legacy S5 states: add the S5 points from `regions.mjs` to `tools/skinlab/states.mjs` and
   run `bless --target legacy --states S5 --reason "G2: supplemental hover/press"`.

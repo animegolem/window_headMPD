@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "tauri": "tauri",
-    "test": "vitest run --project unit",
+    "test": "vitest run --project unit --project timing",
     "corpus": "vitest run --project corpus",
     "check": "node tools/check-boundaries.mjs && tsc --noEmit -p tsconfig.check.json",
     "skinlab": "node tools/skinlab/run.mjs",

@@ -318,6 +318,25 @@ and skinlab never installs Playwright's fake clock, so a frozen engine clock can
 interrupt (fixes cand-F's frozen-clock hang). `executePendingJobs` runs after every entry point under
 the same budget, at most 1,000 jobs per drain.
 
+*G2 rulings (security review, `docs/research/realm-security-review-g2.md`).*
+- **Memory** is read from the heap only: the module gets a capped `WebAssembly.Memory`, and an entry
+  that leaves the heap past its cap, or three failed `grow` calls, is a hard `memory` fault, caught or
+  not. QuickJS's own `setMemoryLimit` is not used (it counts allocation overhead, not size, and its
+  refusal leaves no heap signal, so OOM could only be read from a thrown object's name, which skin code
+  can spoof). A single request past what wasm32 can address (about 2 GiB) stays an ordinary soft
+  exception.
+- **A stack overflow that skin code catches is ordinary skin behaviour** (JScript's "out of stack
+  space" was catchable too). This QuickJS build gives the host no stack signal, so only an uncaught
+  overflow, or one that escapes WASM as a host `RangeError`, is a hard fault.
+- **Leftover jobs.** Jobs still pending after an entry's 1,000-job drain are charged to that entry
+  as a soft fault, then run as their own `jobs` entry (no gesture, handler budget) before the next
+  entry starts; a flood that survives that drain is a hard fault at `jobs`. Jobs never run inside
+  another entry. QuickJS has no API to discard pending jobs.
+- **Guard slots.** Prototype guards (String, Array, typed arrays, JSON, RegExp, Map, Set) are
+  non-writable and non-configurable. Global-function guards (`parseFloat`, `parseInt`, the URI
+  functions, `escape`, `unescape`, `Number.parse*`) stay writable so a skin may declare its own
+  `function escape()`; the native originals are reachable only through the prelude's private table.
+
 - **Soft faults**: an exception in skin code, a syntax error, a membrane cap, or a re-entrancy cap
   hit. Each aborts that dispatch only, is logged once per (site, message), and is counted. Soft faults
   never unload.
@@ -676,7 +695,7 @@ string with a diagnostic.
 `6.6`, `6.7`, `6.10`, `6.13-6.15`). Width and height default from the probed image size (`spec
 5.1`); a VIEW without a size takes its `backgroundImage` size (G21a). Ids are case-preserved and
 scoped per VIEW; a repeated id resolves to the last declaration, with a diagnostic (30 skins). An
-id-less element gets WMP's own `Unnamed_<type>_<n>`, numbered per type in document order across the
+id-less element gets WMP's own `Unnamed_<kind>_<n>`, numbered per kind in document order across the
 THEME (`spec 5.1`); that is also the stable address the demo and sidecars use.
 
 **`jscript:` evaluation: once, in document order** (U-3). Order per VIEW: literal pass; prelude;
@@ -815,7 +834,7 @@ host keys), `mediacenter`.
 | `view.close()`, `view.minimize()` | | honoured only during a pointer or key handler dispatch (a user gesture); from `onload`, timers or bindings they are `denied` and logged, so a skin cannot close itself at every launch |
 | `setTimeout` floods | 18 | 64 live timers per view, 10 ms floor (D1) |
 | `savePreference` floods | 3,052 | D6.4 caps and debounce |
-| MPD commands from script origin | | ≤ 10 per second per verb; `seek` and `setVolume` coalesce to the latest within 40 ms (`parity` D18's debounce); excess is dropped and logged |
+| MPD commands from script origin | | ≤ 10 per second per verb; `seek` and `setVolume` are a trailing 40 ms debounce (`parity` D18; G2): the latest value is sent 40 ms after the last write, never dropped; a write over the rate cap is deferred and logged as `cap` |
 | `currentMedia.setItemInfo` | 8 | `denied` |
 | `mediaCollection`, `cdromCollection`, `dvd`, `playlistCollection` | 7-20 skins | inert stub objects |
 
@@ -1142,21 +1161,21 @@ hash, schema-validated by `src/app/sidecar.js` before use, refs stored in Maps):
 ```json
 {
   "schema": "window_headmpd-sidecar/1",
-  "skin": "<sha256 of ~/Downloads/Headspace.wmz>",
+  "skin": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
   "overlays": [ { "parent": "sEqView", "tag": "text",
                   "attrs": { "left": 9, "top": 121, "width": 15, "value": "32", "fontSize": 5,
                              "foregroundColor": "#77CE07", "justification": "center" },
                   "hostStyle": { "letterSpacing": "<from css:105-113>" } } ],
-  "attrs":   [ { "ref": "<seek slider ref>", "name": "x-foregroundMode", "value": "playhead" } ],
-  "compat":  { "attrs": [ { "ref": "<Unnamed_text_n: reset>", "name": "top", "value": 129 },
-                          { "ref": "<Unnamed_text_m: preset title>", "name": "fontSize", "value": 7 } ] },
+  "attrs":   [ { "ref": "seek", "name": "x-foregroundMode", "value": "playhead" } ],
+  "compat":  { "attrs": [ { "ref": "Unnamed_text_4", "name": "top", "value": 129 },
+                          { "ref": "Unnamed_text_1", "name": "fontSize", "value": 7 } ] },
   "actions": { "returnToMediaCenter": "zoomToggle" },
   "restore": [ { "global": "eqIsOpen", "toggle": "ToggleEqView", "pref": "eqOpen" },
                { "global": "plIsOpen", "toggle": "TogglePlView", "pref": "plOpen" } ],
   "viewResize": "ignore",
-  "tour": { "transport": "<ref>", "playColor": "#FFFF00", "visColor": "#0000FF",
-            "eqHandle": "bEqHandle", "plHandle": "bPlHandle", "visNext": "<Unnamed_button_k>",
-            "reset": "<Unnamed_text_n>", "bands": ["eq1", "…", "eq10"],
+  "tour": { "transport": "Unnamed_buttongroup_2", "playColor": "#FFFF00", "visColor": "#0000FF",
+            "eqHandle": "bEqHandle", "plHandle": "bPlHandle", "visNext": "Unnamed_button_4",
+            "reset": "Unnamed_text_4", "bands": ["eq1", "…", "eq10"],
             "toggle": { "eq": "ToggleEqView", "pl": "TogglePlView", "vis": "ToggleVisView" },
             "isOpen": { "eq": "eqIsOpen", "pl": "plIsOpen", "vis": "visIsOpen" } }
 }
@@ -1174,7 +1193,7 @@ hash, schema-validated by `src/app/sidecar.js` before use, refs stored in Maps):
   dispatch, the shell reads each `global` (a cheap primitive read) and persists changes under `pref`
   in the `app` namespace. After `onload`, it calls each `toggle` whose pref is true (animated, as
   today). cand-D dropped this behaviour; this design keeps it without engine special-casing.
-- `<…>` placeholders are filled by Opus at WAVES gate G2, from the `Unnamed_*` ids the builder prints.
+- Ids filled at G2 from the builder (per-kind numbering): transport `Unnamed_buttongroup_2` (the minimize/close group is `_1`), pause `Unnamed_button_1`, vis-drop prev/next/close `Unnamed_button_3/4/5`, preset title `Unnamed_text_1`, reset `Unnamed_text_4`.
 - Balance detent and volume debounce are host-wide behaviours (D6), not sidecar data.
 
 **D10.7 Demo tour.** The demo becomes a generic **driver** (`src/app/demo/driver.js`: cursor glide,
@@ -1944,14 +1963,20 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 | | VIEWs | 64 | max 9 |
 | | view size per axis | 4,096 px | |
 | | engine-allocated canvas | ≤ 4,096 per axis and ≤ 16.7 M px; larger boxes clamp with a diagnostic | the corpus run reports clamp hits (expected 0) |
-| Realm | memory / stack | 64 MiB / 256 KiB (G1: 1 MiB escaped WASM as a host RangeError under Node 26; the clean ceiling is 320–384 KiB and host-dependent; re-measured in WKWebView at W3.R) | |
+| Realm | memory / stack | 64 MiB of skin data, enforced as the WASM heap cap below / 256 KiB (G1: 1 MiB escaped WASM as a host RangeError under Node 26; the clean ceiling is 320–384 KiB and host-dependent; re-measured in WKWebView at W3.R) | |
 | | top-level scripts of a view | 2,000 ms | `digitaldj` 3,938 lines in 7 files |
 | | `onload`, `onclose` | 1,000 ms | |
 | | handler, `_onchange`, timer, `ontimer` | 100 ms | |
 | | one `jscript:` / whole pass | 20 ms / 1,000 ms | |
 | | pending jobs per drain | 1,000, inside the entry budget | |
 | | duty cycle | > 50% over 5 s throttles; > 80% over 10 s is a hard fault | |
-| | membrane | strings ≤ 64 KiB; ≤ 16 args | |
+| | membrane | strings and property keys ≤ 64 KiB, checked before copy (G2); ≤ 16 args | |
+| | WASM heap | `memoryLimitBytes` + the variant's initial memory, as a capped `WebAssembly.Memory` (G2: QuickJS's own limit counts allocation overhead, not size) | |
+| | script source | 1 MiB per file (G2) | corpus maximum 54,504 chars |
+| | compile | deadline checked before every compile; a spent scripts budget refuses the file (G2) | QuickJS never polls during parsing |
+| | overrun | an entry past deadline + 300 ms is a hard `budget` fault even without an interrupt poll (G2) | |
+| | queued-dispatch drain | `budgets.load` ms of wall time, then the rest is dropped with a soft fault (G2) | |
+| | realm diagnostics | 64 per stream per view, then one `*-capped` (G2) | |
 | | timers | 64 live per view; floor 10 ms; `timerInterval` < 50 rejected | |
 | | `_onchange` chain | depth 32 | |
 | | unload | 1 OOM or abort, or 3 hard faults in 30 s | |
@@ -2024,7 +2049,7 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 | R11 | `_onchange` is always queued, never synchronous; WMP's order is unverified | Keeps the membrane free of re-entry | Ledger counts handlers that read their own change mid-statement; revisit on evidence |
 | R12 | Webamp private APIs drift (phase 2) | Pinned version, one wrapper, boot self-test | `webamp 7` risk 2 |
 | R13 | Re-authored `res://` strings differ in wording from WMP | Microsoft text cannot ship | Only 6 distinct skins use them |
-| R19 | Slow-builtin interrupt latency: QuickJS polls its interrupt handler about every 10,000 interpreter ticks, and a builtin call is one tick however long it runs | Guards in the prelude wrap the size-proportional builtins (string search/repeat/pad/split/replace/case, array join/sort/indexOf/includes/slice/splice/concat/fill/reverse/flat, JSON.parse/stringify, RegExp exec/test and the Symbol.replace/split/match family) and throw before running once the dispatch is over budget; the loop then spins in cheap ticks and the real interrupt fires. Residual overshoot is about one builtin call (bounded by the 64 MiB memory cap, ~150 ms measured) | RG0 measured 0.8–2.2 s overshoot for `for(;;){'y'.repeat(1e5)}` and minutes for `indexOf` over 16 MiB without guards; phase 3 may build QuickJS with a smaller interrupt counter |
+| R19 | Slow-builtin interrupt latency: QuickJS polls its interrupt handler about every 10,000 interpreter ticks, and a builtin call is one tick however long it runs | Guards in the prelude wrap the size-proportional builtins (string search/repeat/pad/split/replace/case, array join/sort/indexOf/includes/slice/splice/concat/fill/reverse/flat, JSON.parse/stringify, RegExp exec/test and the Symbol.replace/split/match family) and throw before running once the dispatch is over budget; the loop then spins in cheap ticks and the real interrupt fires. For a **guarded** builtin the residual overshoot is one call. **Unguarded native work** (operators on large strings such as `==`, unary `+`, `===`, `<`, `switch`, and any builtin not on the guard list) overshoots by up to one interrupt-poll interval, about 10,000 operations: the G2 review measured 47.7 s at 1 MiB with local operands in a loop. Handler top-level code polls about 60× more often because of the `with(__IDS)` traps. The guards narrow accidental paths only; they do not close this class against a hostile skin. For most calls that is bounded by the 64 MiB memory cap (~150 ms measured); comparison-heavy calls over many references to large strings are not (W2.2 review: `arr.indexOf(s)` over 4,000 references to one 16 MiB string takes ~48 s), nor are unguarded builtins (`Object.keys`, `Array.from`, spread, constructors), nor a regex compiled from a large string argument (`'a'.match(big)` 4.3 s, `'a'.search(big)` 4.8 s, `new RegExp(big)` 6.2 s at a 4 MiB argument, G2.F1 review). Recovery for those is force-quit plus the safe-mode boot (D10); a QuickJS build with fine-grained interrupt polling (phase 3) closes the class | RG0 measured 0.8–2.2 s overshoot for `for(;;){'y'.repeat(1e5)}` and minutes for `indexOf` over 16 MiB without guards; phase 3 may build QuickJS with a smaller interrupt counter |
 | R21 | jpeg-js's own `maxMemoryUsageInMB` 256 guard rejects 4:4:4 JPEGs above about 12.5 MP that the 16.7 MP area cap and the probe accept (G1.F1 measured: 11.56 MP decodes, 12.96 MP is `image-corrupt`) | Corpus maximum is 8.3 MP; the decode fails closed with a diagnostic | Raise the guard or add a JPEG-specific area cap if a real skin needs it |
 | R20 | Assignment to a call expression (`eq.gainLevels(band) = v`) is a QuickJS parse error but a run-time error in JScript and V8 | The loader rewrites only statements QuickJS rejects with "invalid assignment left-hand side" into a call that throws `TypeError('Cannot assign to a function result')` at run time, one statement at a time, at most 32 per file, each logged as a `script-rewrite` diagnostic | 7 of 219 corpus scripts; without the rewrite each file would be lost whole |
 | R14 | WKWebView may not honour `'wasm-unsafe-eval'`, and Chromium cannot detect an in-app WASM failure | A strict CSP is worth trying | The re-pin gate boots the engine in the real app; fallback `'unsafe-eval'` in `script-src` only |

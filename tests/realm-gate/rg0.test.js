@@ -9,6 +9,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { FAITHFUL } from '../../src/engine/options.js';
 import { GATE_LIMITS, VARIANT_NAME, freshInstanceEvaluates, newInstance, wallClock } from './qjs.js';
 import { FakeModel, HOST_GLOBAL_NAMES, installPrelude } from './prelude.js';
+import { createRealm } from '../../src/engine/realm/realm.js';
 
 /** The handler budget of ENGINE §10 (100 ms), read from the shipped options rather than restated. */
 const BUDGET = FAITHFUL.budgets.handler;
@@ -18,6 +19,8 @@ const BUDGET = FAITHFUL.budgets.handler;
 // bound that matters is "promptly, not seconds late", so the shared run allows 50 ms; RG0_STRICT=1
 // restores the card's 10 ms for an isolated run.
 const SLACK = process.env.RG0_STRICT ? 10 : 50;
+/** W2.2 item 11: a loop of slow builtins ends within budget plus 300 ms once the realm's guards are in place. */
+const GUARD_BOUND = 300;
 /** What QuickJS raises when the realm runs out of stack; quickjs-ng (RG0_VARIANT=ng) words it as the standard RangeError. */
 const STACK_ERROR = VARIANT_NAME === 'quickjs-ng'
   ? { name: 'RangeError', message: 'Maximum call stack size exceeded' }
@@ -515,24 +518,46 @@ describe('RG0 item 5: budgets, caps, and a fresh instance after each fault', () 
     });
   });
 
-  describe('KNOWN GAP, reported to O: slow builtins in a loop outrun the interrupt', () => {
+  describe('slow builtins in a loop: the gap RG0 found, closed by the realm prelude (W2.2 item 11, E R19)', () => {
     // QuickJS polls the interrupt handler once per 10,000 interpreter ticks (a call or a backward jump),
-    // not per unit of time, and a builtin is one tick however long it runs. A loop whose body is one slow
-    // builtin therefore overshoots by (ticks between polls) x (cost of the builtin). Measured by hand on
-    // this machine, at a 100 ms budget: 'y'.repeat(1e6) in a loop 11.3 s past; s.indexOf('b') over a 16 MiB
-    // string 42 ms per call, so about 3.5 minutes past; JSON.stringify of 200k objects 150 ms per call.
-    // The memory cap bounds the input of one call, not the number of calls between polls. This case keeps
-    // the loop short enough for a unit test. It asserts the gap (overshoot > SLACK) so it flips the day a
-    // watchdog (a Worker with terminate, or a patched QuickJS) closes it; then move it into INTERRUPTED.
-    it('a loop of slow builtins is interrupted, but only about a second late', async () => {
-      const inst = await open();
-      const r = inst.run("for (;;) { 'y'.repeat(100 * 1000); }", { budgetMs: BUDGET });
-      expect(r.ok).toBe(false);
-      expect(!r.ok && r.error).toMatchObject({ name: 'InternalError', message: 'interrupted' });
-      const overshoot = r.elapsedMs - BUDGET;
-      note(`item 5 KNOWN GAP: for(;;){ 'y'.repeat(1e5) } at a ${BUDGET} ms budget was interrupted ${overshoot.toFixed(0)} ms late (limit ${SLACK})`);
-      expect(overshoot).toBeGreaterThan(SLACK);
-      await afterHardFault(inst);
+    // not per unit of time, and a builtin is one tick however long it runs. On a bare instance (the gate
+    // harness above) a loop whose body is one slow builtin therefore overshot by (ticks between polls) x
+    // (cost of the builtin): measured at G1, at a 100 ms budget, 'y'.repeat(1e6) in a loop 11.3 s past and
+    // s.indexOf('b') over a 16 MiB string about 3.5 minutes past. The realm's prelude replaces the
+    // size-proportional builtins with wrappers that ask the host whether the dispatch is over budget and
+    // throw before running if it is; the loop then spins in cheap ticks and the real interrupt fires.
+    // These cases run on the realm itself (createRealm), so they bound what ships, not the harness.
+    /** @type {Array<[string, string, string]>} */
+    const SLOW = [
+      ["for(;;){try{'y'.repeat(1e5)}catch(e){}}", '', "for (;;) { try { 'y'.repeat(1e5); } catch (e) {} }"],
+      ["for(;;){s.indexOf('b')} over a 16 MiB string", "var s = 'a'.repeat(16 * 1024 * 1024);", "for (;;) { s.indexOf('b'); }"],
+    ];
+
+    it.each(SLOW)('%s is a hard fault within budget + 300 ms', async (name, setup, loop) => {
+      const noop = () => undefined;
+      const realm = await createRealm({
+        viewKey: 'rg0/slow-builtins',
+        memoryLimitBytes: GATE_LIMITS.memoryLimitBytes,
+        maxStackBytes: GATE_LIMITS.maxStackBytes,
+        budgets: FAITHFUL.budgets,
+        wallClock,
+        dispatcher: { get: noop, set: noop, call: noop, timer: noop, now: () => 0 },
+        classMembers: new Map(),
+        hostGlobals: { player: 1, theme: 2, view: 3, event: 4, mediacenter: 5, playerApplication: 6 },
+        log: { info: noop, warn: noop, diag: noop },
+      });
+      try {
+        if (setup) expect(realm.loadScript('setup.js', setup).ok).toBe(true);
+        const t = wallClock();
+        const r = realm.runHandler(3, { event: 'onclick', source: loop, params: [], line: 1 });
+        const overshoot = wallClock() - t - BUDGET;
+        note(`item 5 slow builtins (closed by W2.2): ${name} at a ${BUDGET} ms budget was interrupted ${overshoot.toFixed(0)} ms late (bound ${GUARD_BOUND})`);
+        expect(r).toMatchObject({ ok: false, kind: 'hard', reason: 'budget' });
+        expect(overshoot).toBeGreaterThanOrEqual(0);
+        expect(overshoot).toBeLessThanOrEqual(GUARD_BOUND);
+      } finally {
+        realm.unload('rg0 slow builtins');
+      }
     });
   });
 

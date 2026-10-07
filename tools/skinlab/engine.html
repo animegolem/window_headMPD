@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>skinlab engine</title>
+    <style>
+      /* Transparent page, no margin, the harness root at the origin: the screenshot clip is (0,0) to the
+         skin's size, exactly as for the legacy page. The root's size comes from the engine's
+         SkinWindow.setInitialSize (the test window fits its root). */
+      html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+      #skin { position: absolute; left: 0; top: 0; }
+    </style>
+    <script type="module" src="/tools/skinlab/engine-mount.js"></script>
+  </head>
+  <body>
+    <div id="skin"></div>
+  </body>
+</html>

@@ -122,7 +122,7 @@ export interface ThemeModel {
 export interface BuildCaps { maxElements: number; maxDepth: number; maxAttrs: number; maxAttrValue: number;
   maxViews: number; maxViewAxis: number }
 export type BuildThemeFn = (root: RawNode, vfs: SkinVfs, opts: { probe: (ref: string) => ImageProbe | null;
-  overlays?: SidecarOverlay[]; caps?: Partial<BuildCaps> }) => ThemeModel;
+  overlays?: SidecarOverlay[]; caps?: Partial<BuildCaps>; stacking?: 'context' | 'flat' }) => ThemeModel;   // G2: stacking
 
 // ---------------------------------------------------------------------------------------------
 // 5.4 Images
@@ -167,7 +167,7 @@ export interface HostDispatcher {
 export interface RealmBudgets { scripts: number; load: number; handler: number; expr: number; exprPass: number }
 export interface RealmOptions {
   viewKey: string;
-  memoryLimitBytes: number;                                 // 64 MiB
+  memoryLimitBytes: number;                                 // 64 MiB of skin data; the enforced cap is the WASM heap (variant initial memory + this), G2
   maxStackBytes: number;                                    // G1: 256 KiB; host-dependent (escapes WASM at 320-384 KiB under Node 26), re-measured in WKWebView at W3.R
   budgets: RealmBudgets;                                    // 2000, 1000, 100, 20, 1000 ms
   wallClock: () => number;                                  // real performance.now, captured at module load
@@ -213,15 +213,23 @@ export interface ObjectGraph {
   changeSource(path: string): { read(): Wire; subscribe(cb: () => void): Unsubscribe } | null;
   setEvent(ev: EventInit | null): void;
   dispose(): void;
+  // G2 (W2.3): handles. Every HostObject the graph hands to the realm has a handle; objectOf maps it
+  // back (null when unknown or revoked). hostGlobals feeds RealmOptions.hostGlobals.
+  objectOf(handle: number): HostObject | null;
+  readonly hostGlobals: Readonly<Record<'player' | 'theme' | 'view' | 'event' | 'mediacenter' | 'playerApplication', number>>;
+  readonly ready: Promise<void>;                            // persisted mediacenter values applied
 }
+// G2: screenWidth/screenHeight added (spec 5.7, 38 corpus uses).
 export interface EventInit { x: number; y: number; clientX: number; clientY: number; offsetX: number; offsetY: number;
-  screenX: number; screenY: number; button: number; keyCode: number; altKey: boolean; ctrlKey: boolean; shiftKey: boolean;
+  screenX: number; screenY: number; screenWidth: number; screenHeight: number; button: number; keyCode: number; altKey: boolean; ctrlKey: boolean; shiftKey: boolean;
   srcElement: ElementModel | null; fromElement: ElementModel | null; toElement: ElementModel | null }
 export type CreateObjectGraphFn = (deps: { host: HostAdapter; view: ViewModel; theme: ThemeModel; skinSha: string;
   prefs: Map<string, string>; ledger: Ledger; opts: EngineOptions;
   animate: { moveTo: Animator['moveTo']; alphaBlendTo: Animator['alphaBlendTo']; cancel: Animator['cancel'] };   // element moveTo/slideTo/alphaBlendTo
   effectsOf: (el: ElementModel) => EffectsControl | null;            // EFFECTS element objects
-  inGesture: () => boolean }) => ObjectGraph;                        // D6.5 gesture gating
+  inGesture: () => boolean;                                          // D6.5 gesture gating
+  queueEvent?: (el: ElementModel, event: string) => void;            // G2: script click() queues 'onclick'; the runtime drains it FIFO after the entry returns
+  mediacenterPrefs?: Map<string, string> }) => ObjectGraph;          // G2: the already-loaded 'mediacenter' namespace
 export interface LedgerEntry { api: string; kind: 'stub' | 'denied' | 'unknown-member' | 'unknown-tag' | 'unresolved-binding'
   | 'unresolved-res' | 'soft-fault' | 'cap'; count: number; detail?: string }
 export interface Ledger { record(api: string, kind: LedgerEntry['kind'], detail?: string): void; entries(): LedgerEntry[] }
@@ -249,7 +257,7 @@ export interface SongInfo { id: number; pos: number; file: string; title: string
   genre: string; track: string; date: string; durationSec: number }
 export interface MediaState {
   connected: boolean; playState: 'play' | 'pause' | 'stop';
-  elapsed: number; duration: number;                        // s; elapsed extrapolated
+  elapsed: number; duration: number;                        // s; elapsed as of the last status (G2); MediaModel.elapsed() extrapolates
   volume: number;                                           // 0..100, or -1 when MPD has no mixer
   random: boolean; repeat: boolean; single: boolean; consume: boolean;
   song: SongInfo | null; queueLength: number; queueVersion: number;

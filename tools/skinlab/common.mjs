@@ -49,7 +49,8 @@ const same = (a, b) => a && b && a.x0 === b.x0 && a.y0 === b.y0 && a.x1 === b.x1
  */
 export function maskReport(captures) {
   const lines = ['hit mask, live vs parity 4.1 emulation (flags only, never a failure):'];
-  lines.push(`  ${'state'.padEnd(6)}${'dpr'.padEnd(5)}${'live'.padStart(9)}  ${'bbox'.padEnd(22)}${'emulated'.padStart(9)}  ${'delta'.padStart(7)}  note`);
+  const sw = Math.max(6, ...captures.map((c) => c.state.length + 1)); // S5.g1.play.hover is wider than S3b
+  lines.push(`  ${'state'.padEnd(sw)}${'dpr'.padEnd(5)}${'live'.padStart(9)}  ${'bbox'.padEnd(22)}${'emulated'.padStart(9)}  ${'delta'.padStart(7)}  note`);
   const firstMask = new Map();
   for (const c of captures) {
     const ref = EMULATED_MASKS.get(c.state);
@@ -67,7 +68,7 @@ export function maskReport(captures) {
     const prior = firstMask.get(c.state);
     if (prior === undefined) firstMask.set(c.state, c.maskSha256);
     else if (prior !== c.maskSha256) notes.push('DIFFERS from the first dpr');
-    lines.push(`  ${c.state.padEnd(6)}${String(c.dpr).padEnd(5)}${n(c.popcount).padStart(9)}  ${box(c.bbox).padEnd(22)}${emu.padStart(9)}  ${delta.padStart(7)}  ${notes.join('; ')}`);
+    lines.push(`  ${c.state.padEnd(sw)}${String(c.dpr).padEnd(5)}${n(c.popcount).padStart(9)}  ${box(c.bbox).padEnd(22)}${emu.padStart(9)}  ${delta.padStart(7)}  ${notes.join('; ')}`);
   }
   return lines.join('\n');
 }
