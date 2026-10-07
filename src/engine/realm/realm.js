@@ -1,6 +1,6 @@
 // @ts-check
 // The script realm of ENGINE D1 (§5.5 `createRealm`): QuickJS compiled to WASM, the synchronous variant,
-// one module instance per skin session and one context per VIEW, behind the copy-only membrane.
+// one module instance, runtime and context per VIEW, behind the copy-only membrane.
 //
 // The pieces, in the order a view uses them:
 //   - `createRealm` instantiates a fresh module, sets the memory and stack caps and the interrupt
