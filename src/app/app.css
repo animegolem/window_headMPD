@@ -1,0 +1,102 @@
+/* The shell's own CSS (ENGINE.md D10). In engine mode the hand port's style.css is not loaded (entry.js
+   imports one front end or the other), so the page-level rules it carried that are not about the skin
+   live here: a transparent, non-scrolling, non-selectable page; the root the engine mounts into; the
+   demo tour's cursor rule; and the host-drawn panels (the fault panel, D10.8, and the last-resort boot
+   failure). Skin pixels are the engine's, drawn by its own renderer; nothing here styles them. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  font: 9px Tahoma, Verdana, sans-serif;
+  -webkit-font-smoothing: none;
+}
+
+/* The engine's mount point. Its size is the engine's (setInitialSize); the zoom is a transform on the
+   engine's own view, so the root itself only needs a position and an origin. */
+#skin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+/* The demo tour draws its own cursor (the hand port's rule, style.css:370-375, D10.7). */
+body.demo,
+body.demo * {
+  cursor: none !important;
+}
+
+/* The fault panel: host DOM in the window root, above the skin and below the demo's cursor (1000) and
+   flash (2000). Its box is set inline by fault-panel.js (it must match the window shape it sends). */
+.wh-fault {
+  position: absolute;
+  z-index: 500;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #1d1f24;
+  color: #f1f1f3;
+  border: 1px solid #5a5e69;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  font: 13px/1.35 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
+  -webkit-font-smoothing: auto;
+  cursor: default;
+}
+
+.wh-fault-message {
+  margin: 0;
+  overflow: hidden;
+  /* A long reason is cut, not scrolled: the panel is a notice, the log has the rest. */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.wh-fault-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wh-fault-button {
+  font: inherit;
+  color: inherit;
+  padding: 4px 12px;
+  background: #343842;
+  border: 1px solid #6b7080;
+  border-radius: 5px;
+  cursor: default;
+}
+
+.wh-fault-button:hover {
+  background: #3f4450;
+}
+
+.wh-fault-button:active {
+  background: #2a2d36;
+}
+
+/* Only when the shell itself fails to start (no host, so no window to shape): plain text and one way out. */
+.wh-boot-failure {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  padding: 24px;
+  background: #1d1f24;
+  color: #f1f1f3;
+  font: 14px/1.4 -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: auto;
+}
+
+.wh-boot-failure p {
+  margin: 0 0 12px;
+}

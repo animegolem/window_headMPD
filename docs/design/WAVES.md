@@ -1053,11 +1053,60 @@ All tasks run in parallel.
   `record_start`/`record_stop` calls with timestamps and the band values after each drag, as the
   reference for W5.3.
 - **Acceptance**: `npm run skinlab -- demo --target legacy` exits 0 and writes the call log to the
-  output directory; the log shows EQ open by t = 7.5 s, band values `[10, 8, 0, 0, -5, 0, 0, 0, 6, 9]`
+  output directory; the log shows EQ open before the first band drag (t = 8.6 s after record_start; G4: the pinned tour clicks the EQ handle at ~8.24 s), band values `[10, 8, 0, 0, -5, 0, 0, 0, 6, 9]`
   after the drags, and five preset steps.
 - **Deps**: W0.5.
 
 ### Gate G4 · O
+
+*G4 rulings (2026-10-07).* **First end-to-end parity.** Headspace loads through `createEngine` in
+~66 ms (26 ms warm). Faithful passes S1/S2/S4 with exactly the expected deviations
+(`U-23-showBackground` 812 px, `button-transparency` 265 px, recorded in E Appendix A). Compat
+passes S1 and S4 pixel-identically and S2 == S2b; S2/S2b differ from the oracle by **one pixel** at
+(243,235) (the anti-aliased end of the `reset` underline, `#a5b39c` vs `#a5b39b`): W4.1 is accepted
+and the pixel goes to 5F (card 5F.1 below). `tools/skinlab/vite.config.js` pre-bundles `jpeg-js`
+(the engine page reaches it; O edit at G4). `D21-preset-title` absorbs nothing because its region lies
+inside the effects-hole exclusion; it stays as a guard should the exclusion change. W4.4's "EQ open by
+7.5 s" was unreachable by the pinned tour (click at ~8.24 s): W4.4 and W5.3 now say "before the first
+band drag (8.6 s)". W4.2's prefs race gets one more round (G4.F1). Fix-ups:
+
+#### G4.F1 Tauri prefs: register the event collector when the read starts · S · S
+- **Owns**: `src/hosts/tauri/prefs.js`, `tests/hosts/tauri/prefs.test.js`.
+- **Do** (the W4.2 round-3 reviewer's instructions):
+  Edit only src/hosts/tauri/prefs.js and tests/hosts/tauri/prefs.test.js.
+  
+  prefs.js:
+  1. Register the `seen` collector when the read actually starts, not when load() is called. Give `enqueue(cmd, args, onStart)` an optional third argument and run it inside the queued step, just before the invoke: `const run = tail.then(() => { onStart?.(); return invoke(cmd, args); });`. In load(), create `seen` up front, but add it to `loading` (creating the ns Set if needed) inside that onStart callback. Skip the registration if `disposed` is true, so a dispose() that happens before the read starts does not put a Set back into the cleared `loading` map. Keep the finally cleanup as it is, but look up the Set through `loading.get(ns)` or a variable that onStart assigns, because the Set may not exist when load() is called. Set.delete on a non-member does nothing, so a load that never started still cleans up safely. The overlay order stays the same: seen, then inflight, then pending.
+  2. Fix the header comment and the comment inside load(). Events are collected from the moment Rust is asked to read. An event that arrives while the load is still queued is already in the snapshot, because Rust writes the file before it sends the event and serves our read after that. Remove or qualify 'at least as new as the snapshot' so the comment is accurate.
+  
+  prefs.test.js:
+  3. Add a setup() helper, `external(ns, key, value, window = 'skin-1')`, that applies the write to the mock `file` map first (null deletes) and then emits, which is Rust's order. Use it wherever the tests model another window's write.
+  4. Rewrite 'loads of one namespace in flight together each get the events of their own read' with `external`. The queued second load must get zoom=2 from its snapshot. The 'late' event sent during the second read must still reach the second load and not the first.
+  5. Add a regression test that mirrors /tmp/w42rev3/stale.mjs: setup({ holdWrites: true }); prefs.write('app','a','3'); clock.advance(250); await settle() (our write is now in flight and held); const p = prefs.load('app'); await settle() (the load is queued behind the write); then set the mock file's a to '2' and emit { ns:'app', key:'a', value:'2', window:'skin-1' } (skin-1's write landed in Rust first and its event arrives while we are queued); release the held write (file ends at a=3); expect((await p).get('a')).toBe('3'). Run it red/green: it must fail (return '2') on the current source and pass after the fix. Report both runs.
+  6. Re-run `npm test -- tests/hosts/tauri`, `npm run check`, the three /tmp repro scripts and `node /tmp/w42rev3/stale.mjs`, which must print 'loaded a = 3'.
+- **Acceptance**: `npm test -- tests/hosts/tauri`, `npm run check`.
+
+#### G4.F2 Demo capture: drop the 7.5 s constant · S · S
+- **Owns**: `tools/skinlab/cmd-demo.mjs`, `tests/skinlab/demo.test.js`.
+- **Do**: remove `EXPECT.cardEqOpenByS` and the "WAVES says by 7.5 s" report text; the gate is
+  `eqOpenBeforeS` (8.6 s); the pinned-source test asserts the EQ click lands before the first drag.
+- **Acceptance**: `npm test -- tests/skinlab`, `npm run skinlab -- demo --target legacy`, `npm run check`.
+
+#### 5F.1 The `reset` underline end pixel · S · S (runs in wave 5F)
+- **Owns**: decided at 5F from the cause (expected: `src/engine/render/dom/text.js`).
+- **Do**: find why the engine's `reset` TEXT underline ends one shade off at (243,235) in S2/S2b
+  (`#a5b39c` engine vs `#a5b39b` legacy) and fix it, or prove it is a rasteriser rounding difference
+  between two equivalent CSS boxes and add a 1-px bounded allow-list entry with that evidence.
+- **Acceptance**: `npm run skinlab -- check --config compat --state S1,S2,S2b,S4 --dpr 1` exits 0.
+
+#### 5F.2 DPR 2 edges of keyed bitmaps · S · M (runs in wave 5F)
+- **Owns**: decided at 5F from the cause (expected: the canvas drawables under `src/engine/render/dom/`).
+- **Do**: at DPR 2, compat S1/S4 differ from the oracle in 1,180 skin px, all along the head
+  silhouette, `(261,0)-(494,393)`; faithful shows the same 234 px block in the face. DPR 1 is clean. Find why the
+  engine's canvas for a keyed bitmap scales differently from the legacy's `image-rendering: pixelated`
+  `<img>` at 2x (backing-store size, `imageSmoothingEnabled`, CSS `image-rendering` on the canvas,
+  sub-pixel placement) and make them match.
+- **Acceptance**: `npm run skinlab -- check --config compat --state S1,S2,S2b,S4 --dpr 1,2 --strict` and the faithful equivalent exit 0.
 
 - Set the allow-list bounds from W4.1's measured counts (`U-23-showBackground` per group,
   `button-transparency` per state; expected about 811 + 1 and about 265) and record them in E
@@ -1104,7 +1153,7 @@ W5.1 to W5.5 run in parallel. Wave 5F (fixes) is cut by Opus from their reports.
   call log is recorded in W4.4's format, and `--compare` diffs it against the legacy log.
 - **Acceptance**: `npm run skinlab -- demo --target engine --compare` exits 0: the same ordered `mpd`
   verbs and arguments and the same `set_eq` vectors as the legacy log (timestamps within 1 frame of
-  each other's schedule are not compared); EQ open by t = 7.5 s; band values
+  each other's schedule are not compared); EQ open before the first band drag (t = 8.6 s after record_start; G4: the pinned tour clicks the EQ handle at ~8.24 s); band values
   `[10, 8, 0, 0, -5, 0, 0, 0, 6, 9]`; five preset steps.
 - **Deps**: W4.1, W4.4, W3.8.
 

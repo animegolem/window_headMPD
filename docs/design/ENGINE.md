@@ -2151,5 +2151,4 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 - Animations: 120 ms linear; EQ ear at 60 ms ≈ x 103.
 - Live popcounts from G0: 89,328 / 122,636 / 123,258 / 89,328 (S1–S4), equal to the emulation bit for bit; S5/S6/S7 keep S1's mask.
 - Oracle pin after the G3 re-pin (ten pinned files, `clickthrough.rs` removed): `1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2`; all 42 manifest slots (21 states × DPR 1, 2) carried over with identical PNG and mask hashes.
-- Measured bounds from G4: `U-23-showBackground`, `button-transparency`: *(Opus fills in at gate
-  G4)*.
+- Measured bounds from G4 (faithful, S1/S2/S4 at DPR 1): `U-23-showBackground` 812 px, `button-transparency` 265 px; compat mask XOR 106 (the screen corners).

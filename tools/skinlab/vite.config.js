@@ -36,7 +36,8 @@ export default defineConfig({
   plugins: [vizStub()],
   // No dependency discovery: a "new dependencies optimized, reloading" in the middle of a capture
   // would make the first run differ from the second. @tauri-apps/api is plain ESM and serves as is;
-  // three is never reached because of the viz swap.
-  optimizeDeps: { noDiscovery: true, include: [] },
+  // three is never reached because of the viz swap. jpeg-js is CommonJS and the engine page reaches
+  // it through image/service.js, so it is pre-bundled when the server starts (G4), never mid-capture.
+  optimizeDeps: { noDiscovery: true, include: ['jpeg-js'] },
   server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null },
 });

@@ -72,16 +72,17 @@ describe('the committed allow-list (E 9)', () => {
     expect(row('button-transparency')).toEqual(['mask', 'faithful', 'all', 'faithful-xor-compat']);
   });
 
-  it('carries the bounds E 9 states, and null only where it says "measured at G4"', () => {
+  it('carries the bounds E 9 states, with the two G4-measured bounds set', () => {
     expect(at('effects-hole')).toMatchObject({ bound: 31487, exact: true });
     expect(at('D11-screen-corners')).toMatchObject({ bound: 106, exact: true });
     expect(at('U-10-slider-travel')).toMatchObject({ bound: 0, exact: false });
     // "rect area", half-open: (258-222) x (238-221) and (426-321) x (82-65)
     expect(at('D20-reset-y').bound).toBe(36 * 17);
     expect(at('D21-preset-title').bound).toBe(105 * 17);
-    expect(at('U-23-showBackground').bound).toBeNull();
-    expect(at('button-transparency').bound).toBeNull();
-    expect([...list.entries.values()].filter((e) => e.bound === null).map((e) => e.id)).toEqual(['U-23-showBackground', 'button-transparency']);
+    // Measured at G4 (faithful S1/S2/S4 at DPR 1) and set by O; nothing is left in measure mode.
+    expect(at('U-23-showBackground').bound).toBe(812);
+    expect(at('button-transparency').bound).toBe(265);
+    expect([...list.entries.values()].filter((e) => e.bound === null).map((e) => e.id)).toEqual([]);
   });
 
   it('gives every entry its deviation reference and its reason', () => {
@@ -115,12 +116,12 @@ describe('the committed allow-list (E 9)', () => {
     expect(() => activeEntries(list, { config: '__proto__', state: 'S1' })).toThrow(AllowlistError);
   });
 
-  it('strict mode refuses exactly the entries still in measure mode', () => {
+  it('strict mode refuses exactly the entries still in measure mode (none since G4)', () => {
     expect(strictViolations(activeEntries(list, { config: 'compat', state: 'S1' }))).toEqual([]);
-    const v = strictViolations(activeEntries(list, { config: 'faithful', state: 'S2b' }));
-    expect(v).toHaveLength(2);
-    expect(v[0]).toMatch(/^U-23-showBackground: bound is null/);
-    expect(v[1]).toMatch(/^button-transparency: bound is null/);
+    expect(strictViolations(activeEntries(list, { config: 'faithful', state: 'S2b' }))).toEqual([]);
+    const v = strictViolations([{ id: 'm', bound: null }]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toMatch(/^m: bound is null/);
     expect(strictViolations([{ id: 'x', bound: 0 }])).toEqual([]);
   });
 

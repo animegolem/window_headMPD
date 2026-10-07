@@ -19,10 +19,10 @@
       "configs": ["faithful"],
       "states": "all",
       "region": { "kind": "computed", "generator": "unowned-buttongroup" },
-      "bound": null,
+      "bound": 812,
       "exact": false,
       "ref": "U-23, spec 6.5",
-      "why": "the engine follows the docs (BUTTONGROUP pixels no mappingColor owns are not painted); the oracle paints them. Measured at G4: spec 6.5 predicts about 811 in the transport group and 1 in min/close"
+      "why": "the engine follows the docs (BUTTONGROUP pixels no mappingColor owns are not painted); the oracle paints them. Measured at G4: spec 6.5 predicts about 811 in the transport group and 1 in min/close. Bound set at G4 from the measured count (812 in S1, S2, S4 at DPR 1)"
     },
     {
       "id": "D20-reset-y",
@@ -74,10 +74,10 @@
       "configs": ["faithful"],
       "states": "all",
       "region": { "kind": "computed", "generator": "faithful-xor-compat" },
-      "bound": null,
+      "bound": 265,
       "exact": false,
       "ref": "spec 2.7, E 2 window shape",
-      "why": "a BUTTON receives clicks on its transparent keyed pixels; the oracle's alpha mask does not. Defined at check time as faithfulMask XOR compatMask; measured at G4 (a judge measured 130 EQ handle + 135 PL handle, about 265 per state)"
+      "why": "a BUTTON receives clicks on its transparent keyed pixels; the oracle's alpha mask does not. Defined at check time as faithfulMask XOR compatMask; measured at G4 (a judge measured 130 EQ handle + 135 PL handle, about 265 per state). Bound set at G4 from the measured count (265 in S1, S2, S4 at DPR 1)"
     }
   ]
 }
