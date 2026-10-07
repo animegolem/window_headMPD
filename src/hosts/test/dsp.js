@@ -1,8 +1,12 @@
 // @ts-check
 // Fake DspPort for the test host (ENGINE.md §5.6, D6, D11). It holds the host-side EQ and balance
 // state the object model reads and writes, applies the same rules as the Tauri adapter (±14 dB
-// clamp, ±5 balance detent) and records what would reach the audio path, so a test can compare it
-// with the legacy run's `set_eq` / `set_balance` calls (D9).
+// clamp, ±5 balance detent, whole-number gains and balance) and records what would reach the audio
+// path, so a test can compare it with the legacy run's `set_eq` / `set_balance` calls (D9).
+//
+// Quantising is the host's job (parity D31): the engine keeps slider values continuous, and the
+// legacy sliders handed `main.js` whole numbers, so the host binding rounds with `Math.round` (the
+// legacy's own rounding, half toward +Infinity) before a value is stored, sent or announced.
 //
 // Persistence is the real adapter's job (it writes the `app` prefs namespace); a test seeds the
 // starting values through `createFakeDsp({ gains, balance, bypass })` instead.
@@ -19,6 +23,13 @@ export const EQ_BANDS = 10;
 export const EQ_LIMIT_DB = 14;
 /** Balance values within ±5 are 0 for the DSP, and the stored value snaps to 0 (parity D17). */
 export const BALANCE_DETENT = 5;
+
+/**
+ * Whole dB inside ±14. `+ 0` turns the -0 that `Math.round(-0.3)` gives into 0: -0 would print as
+ * `0` but `Object.is` and a JSON round trip tell it apart from the stored 0.
+ * @param {number} db
+ */
+const wholeDb = (db) => Math.round(Math.min(EQ_LIMIT_DB, Math.max(-EQ_LIMIT_DB, db))) + 0;
 
 /**
  * Runs every listener even if one throws, then rethrows the first error.
@@ -40,10 +51,9 @@ function notify(listeners) {
  * @returns {FakeDsp}
  */
 export function createFakeDsp(initial = {}) {
-  const clampGain = (/** @type {number} */ db) => Math.min(EQ_LIMIT_DB, Math.max(-EQ_LIMIT_DB, db));
   let gains = Array.from({ length: EQ_BANDS }, (_, i) => {
     const v = initial.gains?.[i];
-    return typeof v === 'number' && Number.isFinite(v) ? clampGain(v) : 0;
+    return typeof v === 'number' && Number.isFinite(v) ? wholeDb(v) : 0;
   });
   let bypass = initial.bypass ?? false;                   // D6: the EQ is live unless a skin says otherwise
   let balance = 0;
@@ -54,10 +64,15 @@ export function createFakeDsp(initial = {}) {
   /** @type {{ eq: number[][], balance: number[] }} */
   const sent = { eq: [], balance: [] };
 
-  /** @param {number} v */
+  /**
+   * Clamp, round to a whole number, then the detent. The integer comes first so a value that rounds
+   * into the detent (5.4) still snaps to 0, as the legacy's integer slider value did at `main:86`;
+   * the detent returns a literal 0, never -0.
+   * @param {number} v
+   */
   const detent = (v) => {
-    const c = Math.min(100, Math.max(-100, v));
-    return Math.abs(c) <= BALANCE_DETENT ? 0 : c;
+    const r = Math.round(Math.min(100, Math.max(-100, v)));
+    return Math.abs(r) <= BALANCE_DETENT ? 0 : r;
   };
   if (typeof initial.balance === 'number' && Number.isFinite(initial.balance)) balance = detent(initial.balance);
 
@@ -79,7 +94,7 @@ export function createFakeDsp(initial = {}) {
         if (!Number.isInteger(band) || band < 0 || band >= EQ_BANDS) throw new RangeError(`eq band ${band}: expected an integer 0..${EQ_BANDS - 1}`);
         if (typeof db !== 'number' || !Number.isFinite(db)) return;
         const next = [...gains];
-        next[band] = clampGain(db);
+        next[band] = wholeDb(db);
         commitGains(next);
       },
 

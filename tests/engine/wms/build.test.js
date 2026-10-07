@@ -562,3 +562,128 @@ describe('stacking option', () => {
     expect(ids(build(kids(), { stacking: 'flat' }))).toEqual(['screen', 'panel', 'ear', '<bg>', 'head']);
   });
 });
+
+describe('a VIEW is the skin\'s frame: its own `visible` is ignored (5F.5)', () => {
+  it('reads visible="false" on a VIEW as shown, with a diagnostic, and leaves every other element alone', () => {
+    const t = buildTheme(N('theme', {}, [N('view', { id: 'v', width: 40, height: 30, visible: 'false' }, [
+      N('subview', { id: 'hidden', visible: 'false' }), N('button', { id: 'b', visible: 'false' }),
+    ])]), vfsOf(), { probe: () => null });
+    expect(t.views[0].view.get('visible')).toBe(true);
+    expect(diag(t, 'view-visible-ignored').map((d) => d.elementId)).toEqual(['v']);
+    expect(el(t, 'hidden').get('visible')).toBe(false);
+    expect(el(t, 'b').get('visible')).toBe(false);
+  });
+
+  it('says nothing about a VIEW that is visible, and ignores a mis-spelt value like any invalid one', () => {
+    const t = buildTheme(N('theme', {}, [
+      N('view', { id: 'a', width: 40, height: 30, visible: 'true' }), N('view', { id: 'b', width: 40, height: 30, visible: 'ture' }),
+    ]), vfsOf(), { probe: () => null });
+    expect(t.views.map((v) => v.view.get('visible'))).toEqual([true, true]);
+    expect(diag(t, 'view-visible-ignored')).toHaveLength(0);
+  });
+
+  it('is the same through the scanner, and a script write afterwards is still a write', () => {
+    const { root } = scanWms('<THEME><VIEW id="v" width="40" height="30" visible="false"><SUBVIEW id="s" width="5" height="5"/></VIEW></THEME>');
+    const t = buildTheme(/** @type {RawNode} */ (root), vfsOf(), { probe: () => null });
+    const v = t.views[0].view;
+    expect(v.get('visible')).toBe(true);
+    expect(v.set('visible', false, 'script')).toBe(true);
+    expect(v.get('visible')).toBe(false);
+  });
+});
+
+describe('a VIEW with no size and no image takes the box of its visible children (5F.5)', () => {
+  const probe = probeOf({ 'base.bmp': [288, 255], 'tiny.bmp': [79, 70], 'btn.bmp': [16, 12] });
+  /** @param {RawNode[]} kids @param {Record<string, string | number>} [view] */
+  const sizeless = (kids, view = {}) => buildTheme(N('theme', {}, [N('view', { id: 'v', ...view }, kids)]), vfsOf(), { probe });
+  /** @param {ReturnType<typeof sizeless>} t */
+  const sizeOf = (t) => [t.views[0].view.get('width'), t.views[0].view.get('height')];
+
+  it('is the right and bottom edge of the visible children, from the origin (iconic: base.bmp at 0,0 is 288x255)', () => {
+    const t = sizeless([
+      N('subview', { id: 'big', backgroundImage: 'base.bmp' }),
+      N('subview', { id: 'tiny', visible: 'false', backgroundImage: 'tiny.bmp' }),
+    ]);
+    expect(sizeOf(t)).toEqual([288, 255]);
+    const d = diag(t, 'view-size-from-children');
+    expect(d.map((x) => x.elementId)).toEqual(['v']);
+    expect(d[0].detail).toContain('width=288, height=255');
+    expect(diag(t, 'view-no-size')).toHaveLength(0);
+  });
+
+  it('counts position as well as size, ignores hidden ones and ones with no area, and never grows left or up', () => {
+    const t = sizeless([
+      N('subview', { id: 'a', left: 190, top: 0, backgroundImage: 'base.bmp' }),                      // right 478, bottom 255
+      N('subview', { id: 'b', left: 10, top: 300, visible: 'false', backgroundImage: 'tiny.bmp' }),   // hidden: not counted
+      N('button', { id: 'c', left: 5, top: 5, image: 'btn.bmp' }),
+      N('button', { id: 'd', left: 900, top: 900 }),                                                   // no image, no size: no area
+      N('text', { id: 'e', left: -100, top: -100, width: 50, height: 50 }),                           // wholly left of the origin
+    ]);
+    expect(sizeOf(t)).toEqual([478, 255]);
+  });
+
+  it('sees through a size-less grouping SUBVIEW to its children, and clips to a sized one', () => {
+    const t = sizeless([
+      N('subview', { id: 'group', left: 20, top: 30 }, [N('subview', { id: 'inner', left: 5, top: 5, backgroundImage: 'tiny.bmp' })]),
+      N('subview', { id: 'clip', left: 0, top: 0, width: 50, height: 40 }, [N('button', { id: 'far', left: 400, top: 400, image: 'btn.bmp' })]),
+      N('subview', { id: 'empty', left: 700, top: 700 }, [N('button', { id: 'none' })]),
+    ]);
+    // group: 20 + 5 + 79 = 104 wide, 30 + 5 + 70 = 105 high; clip: its own 50x40 box; empty covers nothing
+    expect(sizeOf(t)).toEqual([104, 105]);
+  });
+
+  it('leaves an axis the markup sized alone, a scripted one included, and sizes only the other', () => {
+    const only = sizeless([N('subview', { id: 'big', backgroundImage: 'base.bmp' })], { width: 100 });
+    expect(sizeOf(only)).toEqual([100, 255]);
+    const scripted = sizeless([N('subview', { id: 'big', backgroundImage: 'base.bmp' })], { width: 'jscript:1+1', height: 'jscript:1+1' });
+    expect(sizeOf(scripted)).toEqual([0, 0]);
+    expect(diag(scripted, 'view-size-from-children')).toHaveLength(0);
+    expect(diag(scripted, 'view-no-size')).toHaveLength(0);
+  });
+
+  it('does not override the background image, or a literal size, and an explicit 0 is a value', () => {
+    const image = sizeless([N('subview', { id: 'bigger', backgroundImage: 'base.bmp' })], { backgroundImage: 'tiny.bmp' });
+    expect(sizeOf(image)).toEqual([79, 70]);
+    const zero = sizeless([N('subview', { id: 'big', backgroundImage: 'base.bmp' })], { width: 0, height: 0 });
+    expect(sizeOf(zero)).toEqual([0, 0]);
+    expect(diag(zero, 'view-size-from-children')).toHaveLength(0);
+  });
+
+  it('keeps the no-size diagnostic when the children give nothing, and names only the axis that stayed empty', () => {
+    const bare = sizeless([N('player'), N('subview', { id: 'x', visible: 'false', width: 9, height: 9 })]);
+    expect(sizeOf(bare)).toEqual([0, 0]);
+    expect(diag(bare, 'view-no-size').map((d) => d.elementId)).toEqual(['v']);
+    expect(diag(bare, 'view-size-from-children')).toHaveLength(0);
+    // a child with a width but no height has no area, so it sizes nothing
+    const tall = sizeless([N('text', { id: 't', left: 3, width: 20 })]);
+    expect(sizeOf(tall)).toEqual([0, 0]);
+    const half = sizeless([N('subview', { id: 'w', width: 30, height: 20, left: 4 })], { height: 50 });
+    expect(sizeOf(half)).toEqual([34, 50]);
+    expect(diag(half, 'view-no-size')).toHaveLength(0);
+  });
+
+  it('clamps at the view axis cap and says so', () => {
+    const t = sizeless([N('subview', { id: 'wide', left: 4000, width: 500, height: 10 })]);
+    expect(sizeOf(t)).toEqual([DEFAULT_BUILD_CAPS.maxViewAxis, 10]);
+    expect(diag(t, 'cap-view-size')).toHaveLength(1);
+    const small = buildTheme(N('theme', {}, [N('view', { id: 'v' }, [N('subview', { id: 'wide', width: 300, height: 10 })])]), vfsOf(), { probe, caps: { maxViewAxis: 100 } });
+    expect(sizeOf(small)).toEqual([100, 10]);
+  });
+
+  it('sizes each VIEW of a THEME on its own, and not from a sidecar overlay', () => {
+    const t = buildTheme(N('theme', {}, [
+      N('view', { id: 'one' }, [N('subview', { id: 'a', backgroundImage: 'base.bmp' })]),
+      N('view', { id: 'two' }, [N('subview', { id: 'b', backgroundImage: 'tiny.bmp' })]),
+    ]), vfsOf(), { probe, overlays: [{ parent: 'two', tag: 'text', attrs: { left: 500, top: 500, width: 100, height: 20, value: 'x' } }] });
+    expect(t.views.map((v) => [v.view.get('width'), v.view.get('height')])).toEqual([[288, 255], [79, 70]]);
+  });
+
+  it('treats __proto__ and constructor as ordinary ids in the children it walks', () => {
+    const t = sizeless([
+      N('subview', { id: '__proto__', left: 2, top: 3, backgroundImage: 'tiny.bmp' }),
+      N('subview', { id: 'constructor', left: 1, top: 1, backgroundImage: 'btn.bmp', visible: 'false' }),
+    ]);
+    expect(sizeOf(t)).toEqual([81, 73]);
+    expect(el(t, '__proto__').get('left')).toBe(2);
+  });
+});

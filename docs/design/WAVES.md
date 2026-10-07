@@ -1113,6 +1113,16 @@ band drag (8.6 s)". W4.2's prefs race gets one more round (G4.F1). Fix-ups:
   Appendix A. From now on skinlab runs with `--strict`.
 - Triage any compat difference in S1/S2/S2b/S4 into fix tasks for wave 5F.
 
+*5F rulings (2026-10-07).* 5F.1: the reset underline's end pixel is a compositor rounding difference
+(text over a composited `<canvas>` vs over an `<img>`), proven by a minimal repro; its 1-px entry
+`reset-underline-raster` is ratified as O's (the card delegated it). 5F.2: the engine's subview
+clipping mask was sampled bilinear at DPR 2; `container.js` now sets `image-rendering: pixelated`
+with the mask (head silhouette 2,363 → 80 device px). The two residuals are **oracle smoothing at
+DPR 2**, not engine bugs, and the engine keeps its crisper rendering: `legacy-viz-mask-bleed-left/
+right` (23 + 16 px, the legacy `#viz` mask is `image-rendering: auto`) and `legacy-track-smoothing`
+(6,670 px, the legacy track border-image is not pixelated), both configs, measured bounds. No compat
+smoothing switch. With these, `check --strict` passes compat and faithful S1/S2/S2b/S4 at DPR 1 and 2.
+
 ---
 
 ## Wave 5: parity completion, integration, demo, corpus
@@ -1191,6 +1201,80 @@ measured diff, and has the single acceptance "the named skinlab, demo or corpus 
 and every previously green command stays green". A fix may not add an allow-list entry; only O can,
 with a deviation id and a reason.
 
+#### 5F rulings at the end of wave 5 (2026-10-07)
+
+Owner policy, recorded: **working first, refine later**. Wave 5 results: W5.2 and W5.5 pass. W5.1's
+S3/S3b difference was the engine playlist painting a panel colour where the legacy shows the drawer
+art: the Headspace sidecar now sets `pl backgroundColor` to `none` (O, G5), and the 9–10 px left in
+the combo's SVG CD icon are the bounded entry `playlist-icon-raster`. W5.3's demo compare fails only
+because nothing rounds EQ gains to whole dB (parity D31: the host quantises volume, gains and balance
+to integers) → 5F.4. W5.4: 195/195 skins mount with zero crashes, but 38 first frames are empty:
+34 skins hand over from a splash view by writing `theme.currentViewID` → 5F.6 implements a minimal
+single-window view switch (phase 3 keeps multi-window views); 4 are renderer bugs → 5F.5.
+
+#### 5F.4 Hosts quantise volume, EQ gains and balance to integers · S · S
+- **Owns**: `src/hosts/test/{dsp,media}.js`, `src/hosts/tauri/{dsp,media}.js`, `tests/hosts/test/{dsp,media}*`, `tests/hosts/tauri/{dsp,media}*`.
+- **Do**: `DspPort.eq.setGain` rounds to whole dB, `balance.set` is rounded to an integer, then the ±5 detent (the oracle order: `widgets.js:272` rounds, `main.js:86` applies the detent), `MediaModel.setVolume` to an integer, in both hosts; never emit `-0`. A write that rounds to the stored value stays silent (G2.F3).
+- **Acceptance**: `npm test -- tests/hosts`, `npm run skinlab -- demo --target engine --compare` exits 0 (faithful) and with `--config compat`, `npm run check`.
+
+#### 5F.5 Renderer: invisible VIEW, tiled mask, size-less VIEW · S · M
+- **Owns**: `src/engine/render/dom/container.js`, `src/engine/wms/build.js`, their tests, a new fixture case under `tools/skinlab/fixtures/`.
+- **Do** (W5.4 triage, `docs/coverage/corpus-load.txt`): (a) `gnome.wmz`: a VIEW with `visible="false"` renders `display:none`; find what WMP does (spec, corpus) and match it. (b) `Gorillaz`: a `backgroundTiled` container's clip mask is sized to one tile with `no-repeat`; tile the mask like the background. (c) `microsoft__iconic`, `skinwerkz__Deadside`: a VIEW with no width/height comes out 0×0; give it the size WMP would (background image size, else the bounding box of its children; cite the spec).
+- **Acceptance**: `npm test -- tests/engine/render tests/engine/wms`, `npm run skinlab -- fixtures --area render`, `npm run skinlab -- check --strict --config compat --state S1,S2,S2b,S3,S3b,S4 --dpr 1,2` stays green, and these four skins have a non-empty first frame in `npm run skinlab -- corpus`.
+
+#### 5F.6 Single-window view switch, soft-fault ledger, resize mask · O · M
+- **Owns**: `src/engine/view-runtime.js`, `src/engine/index.js`, `src/engine/model/objects/theme.js`, `tests/engine/runtime/*`, `tests/engine/model/objects-theme*`.
+- **Do**: (a) a script write of `theme.currentViewID` naming another VIEW of the same theme (and `theme.openView`/`closeView` of the main view) switches the main window: run the old view's `onclose`, dispose its runtime, attach the named view in the same `SkinWindow` with `setInitialSize` to its size, and log a diagnostic; at most 4 switches per second and never re-entrant within one dispatch (a skin that flips views in a loop gets a soft fault). Opening a second window stays phase 3. (b) Realm soft faults are recorded in the ledger (`soft-fault`, per site), as E D6.7 says. (c) After a script writes VIEW `width`/`height` (ignored by the window under D13), the mask is recomputed from the scene so it never stays stale; the popcount < 64 fallback still applies.
+- **Acceptance**: `npm test -- tests/engine/runtime tests/engine/model`, the 34 hand-over skins of `docs/coverage/corpus-load.txt` have a non-empty first frame in `npm run skinlab -- corpus`, the Headspace strict checks stay green, `npm run check`.
+
+#### W5.3F Demo compare tests · S · S
+- **Owns**: new `tests/skinlab/demo-engine.test.js`.
+- **Do**: the W5.3 reviewer's items (a)-(g): unit tests over `tools/skinlab/cmd-demo.mjs` exports (mpdArgvOf, engineRaw, buildLog, parseEngineDemoOptions, peekTarget, eqSteps, compareLogs/checkEngineLog), including `__proto__`/`constructor`.
+- **Acceptance**: `npm test -- tests/skinlab/demo-engine`, `npm run check`.
+
+#### 5F rulings, round 2 (2026-10-07)
+
+5F.5 and W5.3F pass. 5F.4 and 5F.6 were blocked only by `tests/engine/model/objects-elements.test.js:453`,
+which pinned the pre-D31 gain 7.5. O changed it to 8 (gate edit). O ratifies the 5F.4 balance order
+(round, then detent; amended above), which matches the oracle. O also ratifies 5F.6's reading that
+`openView` hands over only from a view with no area: all 34 hand-over skins pass, and every corpus
+`closeView` targets a secondary view. The three 5F.5 VIEW rulings are in ENGINE §4 beside D26.
+
+The reviews surfaced three defects, which become the cards below. They run in parallel, then W5.4F
+regenerates the reports.
+
+#### 5F.7 Realm scope: a handler's call to a global function must not hit an event attribute · O · S
+- **Owns**: `src/engine/realm/prelude.js` and new tests under `tests/engine/realm/`.
+- **Do**: inside a handler (`with(__IDS){with(this){…}}`), `OnClose()` and `OnLoad()` resolve case-insensitively to the element's own `onclose`/`onload` attribute instead of the script's global function, giving `TypeError: not a function`. Headspace's `onclose="OnClose();"` never runs, so its effect-preset save is lost (repros: `/tmp/f6/scripts/scope.mjs`, `/tmp/f6/scripts/hsclose-orig.mjs`). Event-handler attributes are not readable properties in WMP's object model, so the element scope must not answer `has` for them; names fall through to `__IDS` and the realm global. Check the spec (`wms-spec.md` 2.1, 3.x) and keep property reads such as `left` and `value` resolving as today.
+- **Acceptance**: `npm test -- tests/engine/realm tests/engine/runtime tests/engine/model`; a test where a VIEW's `onclose="OnClose();"` calls the global function; Headspace's ledger shows no `onclose` soft fault (`npm run skinlab -- corpus --only Headspace --no-write`); the Headspace strict checks stay green; `npm run check`.
+
+#### 5F.8 View-switch follow-ups · S · S
+- **Owns**: `src/engine/index.js`, `src/engine/view-runtime.js`, `src/app/boot.js`, `tests/engine/runtime/*`, `tests/app/*`.
+- **Do**: (a) after a switch, `loadSkin`'s `attached` map is still keyed on the first view, so `skin.attach('<view switched to>')` passes the "already attached" guard and mounts a second renderer into the same root. Key it on the view shown, or refuse while a main window is up. (b) Never call `setInitialSize` for a size-less first view on any host (`view-runtime.js:1147` guards only the switched path; Tauri throws on 0×0). The hand-over sizes the window. (c) `boot.js`: the fault panel's `size()` reads the view shown, not `skin.views()` main, which is the splash. The window key stays `${sha}/${firstViewId}`, because it is stable across launches. (d) Add a test for the drain-cap `ledger.record('queue', 'soft-fault', …)`. (e) `tests/app/boot.test.js` › safe mode › "the panel's Reload skin is the explicit retry…" failed once under the full `npm test` and passes alone 3/3. Make it deterministic (fake timers or an injected clock), not slower.
+- **Acceptance**: `npm test -- tests/engine/runtime tests/app`, `npm run skinlab -- corpus --no-write` keeps 195/195 non-empty first frames, `npm run check`.
+
+#### 5F.9 Shape path matches the renderer for tiled and all-clip containers · S · S
+- **Owns**: `src/engine/shape/scene.js`, `tests/engine/shape/*`.
+- **Do**: `containerInfo().clipAt` looks up one tile with no wrap and still applies a VIEW mask that keeps no pixel, so window shape and hit testing can disagree with the 5F.5 renderer. Wrap `lx % mw`, `ly % mh` for a tiled clip, and skip a VIEW clip that keeps no pixel (SUBVIEWs stay masked), matching `render/dom/container.js`.
+- **Acceptance**: `npm test -- tests/engine/shape`, Gorillaz has a non-empty window mask that agrees with its first frame in `npm run skinlab -- corpus --only Gorillaz --no-write`, the Headspace strict checks stay green, `npm run check`.
+
+*Round 2 results.* 5F.7, 5F.8 and 5F.9 pass. 5F.7: corpus realm soft faults fall from 7,947 in 80 skins
+to 7,923 in 64 skins, and R0 Headspace's ledger is empty again, so its effect-preset save on close now
+happens. O ruling on the 5F.9 divergence: U-7 says honour `clippingImage` on a SUBVIEW, and the shape
+path does, but the renderer masks only from a background image's clip plane → 5F.10. Timing tests
+(realm memory DOS-1, faults DOS-5, scan-api linearity) flake only under the load of several agents.
+G5 runs them with nothing else running.
+
+#### 5F.10 Renderer masks from `clippingImage` alone; size-less SUBVIEW mask · S · S
+- **Owns**: `src/engine/render/dom/container.js` (and the module that builds its clip planes, if the planes for a `clippingImage` come from there), `tests/engine/render/*`, a fixture case under `tools/skinlab/fixtures/`.
+- **Do**: (a) a SUBVIEW with a `clippingImage` and no `backgroundImage` gets the clip mask that `shape/scene.js` already uses (U-7: 32 SUBVIEW tags in the 342 archives, 19 in the 195 distinct skins; the 37 in `wms-spec.md` counts every element), at the image's native size. (b) Count the corpus SUBVIEWs with no size and a clip mask. Chromium's `mask-clip: border-box` on a 0×0 node hides every child, while R10 says a size-less SUBVIEW does not clip and the shape keeps one tile. If any corpus SUBVIEW hits this, make the renderer agree with the shape (the mask at its native size from 0,0, never clipped to a 0×0 box). If none does, record the count in the card result and change nothing.
+- **Acceptance**: `npm test -- tests/engine/render tests/engine/shape`, `npm run skinlab -- fixtures --area render`, both Headspace strict checks (`--state S1,S2,S2b,S3,S3b,S4 --dpr 1,2`) stay green, `npm run check`.
+
+#### W5.4F Corpus tooling fixes · S · S
+- **Owns**: W5.4's files (`tools/corpus.mjs`, `tools/skinlab/cmd-corpus.mjs`, `tests/corpus/load.test.js`, `docs/coverage/{ledger.md,corpus-load.txt}`).
+- **Do**: the W5.4 reviewer's items 1-4: no double-counted diagnostics; the ledger header names `soft-fault`; art-free tests for `rowFailures` and `renderChromiumReport`; time out page probes so a stuck main thread is reported as a hang; (5) the ledger header says a soft-fault count is distinct reasons per site, not occurrences. Regenerate the two reports after 5F.5 to 5F.10 land (run last); check why Lollapalooza 2003 is newly 'still busy' (its main view now runs, 5F.6: a tween that restarts itself) and say so in the report.
+- **Acceptance**: `npm run corpus -- load` (it runs `tests/corpus`; `npm test -- tests/corpus` runs nothing, because the corpus project is not in `npm test`), `npm run coverage`, `npm run check`.
+
 ### Gate G5 · O (parity gate)
 
 1. All W5.1 checks in `--strict` mode, both configurations, DPR 1 and 2.
@@ -1201,6 +1285,13 @@ with a deviation id and a reason.
    nothing outside the allow-list.
 4. In-app smoke checklist, all items, engine mode.
 5. Ledger review: Headspace's ledger lists only the expected stubs (`pl.setColumnResizeMode`, `video`).
+
+*G5 results, code items (2026-10-07).* Run on a quiet machine, in sequence:
+- Item 1 passes: `npm run check`; strict skinlab checks in compat and faithful, S1, S2, S2b, S3, S3b and S4 at DPR 1 and 2 (12 comparisons and 2 gates each); both demo comparisons ("same mpd verbs and arguments, same set_eq steps, same drags and band values, same preset steps"); `npm test` (133 files, 5,300 passed, 1 skipped); `npm run corpus -- load` (44 tests).
+- Corpus run: 195/195 mounted. 0 renderer crashes, 0 hangs, 0 page exceptions. 195/195 non-empty first frames and window masks. Two never-quiet skins, both animating by design (Navigator; Lollapalooza 2003).
+- Item 2: the WebKit report-only pass has one finding. `legacy-track-smoothing` absorbs 6,678 px against its Chromium-measured bound of 6,670 at S2/S2b @2x, so WebKit smooths the legacy track over 8 more pixels. There are 0 unabsorbed pixels. The bound stays the Chromium measurement. At 1x, WebKit shows no viz-mask bleed, so those entries read "absorbed nothing" there, which is expected.
+- Item 5: the scripted R0 run records an empty ledger, because it never exercises the two expected stubs. "Only the expected stubs" holds, and the owner session reads the in-app ledger.
+- Items 3 and 4 (G-WK and the smoke checklist) need the owner in the app and remain open.
 
 ---
 

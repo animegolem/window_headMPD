@@ -19,7 +19,10 @@
 //      only for a real id (G2 DOS-7);
 //   3. one cached Proxy per handle. `has` answers from the class member set the host sent at boot (or
 //      `setIds`), case-insensitively, and never crosses; `get`/`set`/method calls cross through `host`
-//      with the key lowercased. A handle whose class the realm was never told (a `{__h}` a dispatcher result
+//      with the key lowercased. The `has` set leaves out the event-handler attributes (spec 2.3, 5.6):
+//      they are not readable properties in WMP's object model, so a handler's bare `OnClose()` reaches
+//      the script's function, not the VIEW's `onclose` text (WAVES 5F.7). Explicit `view.onclose` still
+//      crosses. A handle whose class the realm was never told (a `{__h}` a dispatcher result
 //      carried, such as `player.controls`) gets a proxy whose `has` is false: it is never in a `with`
 //      chain, and its `get`/`set` still forward every string key for the host to validate. A key longer
 //      than the membrane's 64 KiB is refused before it is lowercased or sent (G2 F1). Every proxy
@@ -211,8 +214,22 @@ const TOO_MANY = ${JSON.stringify(MEMBRANE_MESSAGES.args)};
 
 // 3. Handles and their proxies.
 const METHOD = create(null);                 // what the host returns for a {method: true} member
-const memberSets = new SafeMap();            // class -> Set of lowercased members
-for (const pair of cfg.classMembers) memberSets.set(pair[0], new SafeSet(pair[1]));
+// An event-handler attribute (spec 2.3): 'on' + the event on every class, and on the PLAYER element
+// also the bare event name, which is there exactly when its 'on' twin is. The twin test is the
+// PLAYER's alone: elsewhere it would hide methods such as view.close and buttongroup.click.
+const PLAYER_ELEMENT = 'element.player';
+function scopeMembers(cls, members) {
+  const all = new SafeSet(members), out = new SafeSet();
+  for (let i = 0; i < members.length; i++) {
+    const k = members[i];
+    if (k.length > 2 && k[0] === 'o' && k[1] === 'n') continue;
+    if (cls === PLAYER_ELEMENT && all.has('on' + k)) continue;
+    out.add(k);
+  }
+  return out;
+}
+const memberSets = new SafeMap();            // class -> Set of lowercased members a 'with' scope answers for
+for (const pair of cfg.classMembers) memberSets.set(pair[0], scopeMembers(pair[0], pair[1]));
 const classOfHandle = new SafeMap();         // handle -> member Set, or null when the class is unknown
 const records = new SafeMap();               // handle -> { proxy, state }
 const handleOf = new SafeWeakMap();          // proxy -> handle, so only real proxies are sent as handles

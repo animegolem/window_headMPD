@@ -24,14 +24,26 @@
 //      it through the registry (zip caps, sidecar, host choice), attach its main view, replay the
 //      drawers, start the marker's 10 s clock.
 //
+// Two pieces ride on that order and are wired here, not in their own modules:
+//   - The demo tour (D10.7). `deps.listen` is Tauri's event `listen`; `attachDemoTrigger` turns an
+//     `mpd-message` that says `demo <wav>` into `runTour`. The tour's target is read from whatever is
+//     loaded when the message arrives (see demo-trigger.js), so a reload re-points it.
+//   - The notice colour (D10.3). The effects slot mounts while the skin attaches and reads its notice
+//     colour then, so the colour has to be known between the load and the attach. `loadSkin` finds it
+//     from the archive (`firstTextColour`) and hands it to `deps.onSkinLoaded`; `runBoot` keeps it in a
+//     cell the Tauri host reads through its `noticeColor` function.
+//
 // There is no top-level `await` in this file, on purpose: Rollup places the namespace object of
 // quickjs-emscripten-core's inlined dynamic import at the end of the chunk, and a suspended module
 // evaluation lets that import run first and fail with "Cannot access ... before initialization".
-//
-// Integration (W5.2) adds the demo trigger and the notice colour; both are noted where they belong.
 
 import './app.css';
+import { decodeText } from '../engine/text/decode.js';
 import { createEngine as defaultCreateEngine } from '../engine/index.js';
+import { parseColor } from '../engine/wms/values.js';
+import { scanWms } from '../engine/wms/scan.js';
+import { pickDefinition } from '../engine/wms/select.js';
+import { attachDemoTrigger, planTour } from './demo-trigger.js';
 import { createFaultPanel } from './fault-panel.js';
 import { attachKeys } from './keys.js';
 import { attachMenu, createNativePresenter, createPins, flipMode } from './menu.js';
@@ -80,12 +92,18 @@ import { createZoom } from './zoom.js';
  *   flip?: (to: 'engine' | 'legacy') => void,
  *   openVfs?: import('../engine/contracts').OpenVfsFn,
  *   onTeardown?: () => void,
+ *   listen?: import('./demo-trigger.js').ListenFn,
+ *   tour?: { run?: import('./demo-trigger.js').RunTourFn, env?: import('./demo-trigger.js').TourEnv },
+ *   onSkinLoaded?: (loaded: { vfs: import('../engine/contracts').SkinVfs, sidecar: Sidecar | null, noticeColor: number | null }) => void,
  * }} BootDeps
  *   `createHost` builds the host (called after the migration, with the shell's actions); `prefs` is the
  *   store the migration and the boot marker use (its writes must land at once, or `flush` must exist);
  *   `skins` defaults to the host's own `skins`; `sidecarFor` to the committed sidecars; `storage` to
  *   `localStorage`; `target` to the window; `flip` to the engine/legacy reload; `onTeardown` runs
- *   whenever a loaded skin is torn down (reload, dispose).
+ *   whenever a loaded skin is torn down (reload, dispose). `listen` is Tauri's event `listen`: without
+ *   it nothing listens for the demo trigger. `tour` replaces the driver's `runTour` and its environment
+ *   (the app uses the real ones). `onSkinLoaded` is called once the archive is loaded and before its view
+ *   attaches, with the notice colour the skin's first coloured TEXT gives (null when it has none).
  */
 
 /** The `app` pref that remembers which skin was loaded last. */
@@ -117,6 +135,34 @@ function toBytes(buf) {
   if (buf instanceof Uint8Array) return buf;
   if (buf instanceof ArrayBuffer) return new Uint8Array(buf);
   throw new TypeError('the skin store returned something that is not bytes');
+}
+
+/**
+ * The colour the "Waiting for MPD..." notice takes (D10.3): the `foregroundColor` of the first TEXT, in
+ * document order, whose definition declares one as a colour. The model would answer this with
+ * `el.source('foregroundColor') !== undefined`, but the shell has no model, and the notice must be
+ * coloured before the view attaches, so it reads the archive's definition itself with the engine's own
+ * scanner. A `jscript:` or `wmpprop:` value is not a colour yet and is passed over, as are `none` and
+ * `auto`. The sidecar's labels are not in the file, so they never come first. For Headspace this is
+ * `#77CE07`, the oracle's `--label`.
+ * @param {import('../engine/contracts').SkinVfs} vfs
+ * @returns {number | null} an Rgb number, or null when no TEXT gives one (the overlay's own default then applies)
+ */
+export function firstTextColour(vfs) {
+  const picked = pickDefinition(vfs);
+  const bytes = picked ? vfs.read(picked.wms) : null;
+  if (!bytes) return null;
+  const { root } = scanWms(decodeText(bytes).text);
+  const stack = root ? [root] : [];
+  for (let node = stack.pop(); node; node = stack.pop()) {
+    if (node.tag === 'text') {
+      const declared = node.attrs.find((a) => a.name === 'foregroundcolor');
+      const colour = declared ? parseColor(declared.value) : null;
+      if (typeof colour === 'number') return colour;
+    }
+    for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]);   // so the first child pops first
+  }
+  return null;
 }
 
 /**
@@ -298,11 +344,11 @@ export async function boot(deps) {
 
   /** @type {HostedSkin | null} */
   let skin = null;
-  /** @type {(HostedView & { inspector?: import('../engine/contracts').SkinInspector }) | null} */
+  /** `viewId` is the engine runtime's: the view the window shows now, which a hand-over changes. @type {(HostedView & { inspector?: import('../engine/contracts').SkinInspector, viewId?: string }) | null} */
   let view = null;
   /** @type {Sidecar | null} */
   let sidecar = null;
-  /** @type {{ w: number, h: number } | null} */
+  /** The main view's size from `skin.views()`: what the panel falls back to when the view shown has none. @type {{ w: number, h: number } | null} */
   let viewSize = null;
   /** @type {ReturnType<typeof createRestore> | null} */
   let restore = null;
@@ -314,10 +360,24 @@ export async function boot(deps) {
     win,
     root: deps.root,
     actions: { reload: () => reload(), useLegacy: () => flip('legacy') },
-    size: () => viewSize ?? { w: 760, h: 394 },
+    size: () => shownSize() ?? viewSize ?? { w: 760, h: 394 },
     baseShape: () => attempt(() => view?.maskShape()) ?? null,
     log,
   });
+
+  /**
+   * The size of the view the window shows now. A skin that starts on a splash hands the window to
+   * another view, so it is not the main view `skin.views()` names; the fault panel is centred on the
+   * window the owner sees. Null until a view is attached, for a runtime that does not say which view it
+   * shows, and for a view with no area (the caller falls back to the main view's size).
+   * @returns {{ w: number, h: number } | null}
+   */
+  function shownSize() {
+    const id = attempt(() => view?.viewId);
+    if (typeof id !== 'string') return null;
+    const found = attempt(() => skin?.views())?.find((v) => v.id === id);
+    return found && found.width > 0 && found.height > 0 ? { w: found.width, h: found.height } : null;
+  }
 
   /** @param {string} message */
   function showFault(message) {
@@ -435,12 +495,16 @@ export async function boot(deps) {
       skin = loaded.skin;
       sidecar = loaded.sidecar;
       if (shell) shell.sidecar = sidecar;
+      // The effects slot reads its notice colour when it mounts, inside `attach` below.
+      attempt(() => deps.onSkinLoaded?.({ vfs: loaded.vfs, sidecar, noticeColor: attempt(() => firstTextColour(loaded.vfs)) ?? null }));
       const views = skin.views();
       const main = views.find((v) => v.main) ?? views[0];
       if (main) viewSize = { w: main.width, h: main.height };
       // The window is keyed `<sha>/<viewId>` (D7.6) from here on, and its zoom and pins are saved under
       // that key. The native window starts with a placeholder key (it exists before any skin is hashed)
       // and takes this one; the test window's key is fixed. Restore them now, before the first frame.
+      // It names the view the skin starts on, not the one a hand-over ends on, because only that one is
+      // the same at every launch.
       attempt(() => /** @type {any} */ (win).setKey?.(`${loaded.vfs.sha}/${main?.id ?? 'main'}`));
       await Promise.all([zoom.restore(), pins.restore()]);
       view = await skin.attach(main?.id);
@@ -472,6 +536,18 @@ export async function boot(deps) {
 
   shell = { fault: showFault, zoom, sidecar: null };
 
+  // The demo tour: `mpc sendmessage window_head "demo <wav>"`. What it aims at is read when the message
+  // arrives, from the view and sidecar that are loaded then.
+  const demo = deps.listen
+    ? attachDemoTrigger({
+        listen: deps.listen,
+        plan: () => planTour({ view, sidecar, media: host.media, effects: effectsTracker.effects(), zoom: () => win.zoom }),
+        run: deps.tour?.run,
+        env: deps.tour?.env,
+        log,
+      })
+    : null;
+
   // ---- go ------------------------------------------------------------------------------------------
 
   await Promise.all([zoom.restore(), pins.restore()]);
@@ -482,6 +558,7 @@ export async function boot(deps) {
   function dispose() {
     if (disposed) return;
     disposed = true;
+    demo?.dispose();
     menu.dispose();
     keys.dispose();
     for (const type of ['pointerup', 'keyup', 'keydown']) target.removeEventListener(type, afterDispatch);
@@ -504,6 +581,7 @@ export async function boot(deps) {
     panel,
     safe,
     migration,
+    demo,
     reload,
     dispose,
     /** Shows the fault panel with this text. */
@@ -558,10 +636,14 @@ export async function runBoot() {
   const early = createTauriPrefs({ invoke, listen, label: getCurrentWindow().label });
   const fanout = createFanoutTracker({ unsubscribe: (id) => invoke('audio_unsubscribe', { id }) });
   const TrackedViz = fanout.track(/** @type {VizConstructor} */ (/** @type {unknown} */ (Viz)));
+  /** The notice colour of the skin being loaded: the host exists before any skin, so it reads this cell when the effects slot mounts. @type {number | null} */
+  let noticeColor = null;
   return boot({
     prefs: early,
-    createHost: ({ actions }) => createTauriHost({ Viz: TrackedViz, actions }),
+    createHost: ({ actions }) => createTauriHost({ Viz: TrackedViz, actions, noticeColor: () => noticeColor }),
+    onSkinLoaded: (loaded) => { noticeColor = loaded.noticeColor; },
     onTeardown: () => fanout.releaseAll(),
+    listen: (event, cb) => listen(event, cb),
   });
 }
 

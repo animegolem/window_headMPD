@@ -8,6 +8,8 @@
 //                page. Until W4.1 replaces the W0.1 stub, `load` rejects and this says
 //                "engine not implemented".
 //   settle()     advance(500) on the manual clock (16 ms frames), then runtime.settled()
+//   advance(ms)  the manual clock alone, with no settled(): S7 reads the engine mid-animation, and
+//                settled() waits for tweens to finish, which a stopped clock never lets them do
 //   call(name)   runtime.inspector.callGlobal(name): the skin's own code path (S2b)
 //   mask()       the last window shape as {width, height, b64}: 1 bpp, row-major, LSB first, skin px
 //   recorded()   what the test host's SkinWindow was asked to do
@@ -18,6 +20,7 @@
 import { createEngine } from '../../src/engine/index.js';
 import { FAITHFUL, ORACLE_COMPAT } from '../../src/engine/options.js';
 import { createTestHost } from '../../src/hosts/test/index.js';
+import { mountPlaylist } from '../../src/app/widgets/playlist.js';
 
 /** E D9: both configurations run on `sliderGeometry: 'oracle'`; only the allow-list switches differ. */
 const CONFIGS = new Map([
@@ -36,11 +39,12 @@ export const SEED = Object.freeze({
 });
 
 /**
- * W5.1 injects the real playlist widget here (`mountPlaylist` of src/app/widgets/playlist.js, built
- * against a MediaModel and the slot element). Until then the host's blank placeholder stands in.
- * @type {import('../../src/hosts/test/slots.js').PlaylistFactory | undefined}
+ * The real playlist widget (W3.7, `mountPlaylist`) in the test host's playlist slot, so S3 and S3b
+ * compare the widget the app ships, not a blank box. The factory is handed the slot's attrs only; the
+ * rect reaches the widget with the `handle.update(spec)` the slot renderer sends right after the mount.
+ * @type {import('../../src/hosts/test/slots.js').PlaylistFactory}
  */
-const PLAYLIST_FACTORY = undefined;
+const PLAYLIST_FACTORY = (el, media, attrs, win) => mountPlaylist(el, media, attrs, win);
 
 /** 760x394 is 37,430 bytes: a spread of String.fromCharCode would overflow the stack, so go in slices. */
 function toBase64(bytes) {
@@ -105,6 +109,9 @@ window.__skinlabEngine = {
   booted: true,
   mount,
   settle,
+  advance(ms) {
+    state.host.clock.advance(ms);
+  },
   async call(name, args) {
     return state.runtime.inspector.callGlobal(name, args);
   },

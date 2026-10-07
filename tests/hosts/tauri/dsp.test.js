@@ -116,10 +116,10 @@ describe('equalizer', () => {
   it('set_eq receives all ten gains on each band change', async () => {
     const r = await boot();
     r.dsp.eq.setGain(3, 6);
-    r.dsp.eq.setGain(9, -2.5);
+    r.dsp.eq.setGain(9, -3);
     expect(r.since(r.booted)).toEqual([
       ['set_eq', { gains: [0, 0, 0, 6, 0, 0, 0, 0, 0, 0] }],
-      ['set_eq', { gains: [0, 0, 0, 6, 0, 0, 0, 0, 0, -2.5] }],
+      ['set_eq', { gains: [0, 0, 0, 6, 0, 0, 0, 0, 0, -3] }],
     ]);
     expect(r.since(r.booted).every(([, a]) => /** @type {number[]} */ (a?.gains).length === 10)).toBe(true);
   });
@@ -425,5 +425,115 @@ describe('failures', () => {
     expect(dsp.eq.gains()[0]).toBe(5);
     expect(prefs.rejected).toHaveLength(1);
     expect(rec.calls.at(-1)).toEqual(['set_eq', { gains: [5, 0, 0, 0, 0, 0, 0, 0, 0, 0] }]);
+  });
+});
+
+// Parity D31: the engine keeps slider values continuous and the host binding quantises, as the legacy
+// sliders handed main.js whole numbers (`Math.round`, half toward +Infinity).
+describe('whole-number gains and balance (parity D31)', () => {
+  it.each([
+    [2.4, 2], [2.6, 3], [2.5, 3], [-2.4, -2], [-2.6, -3], [-2.5, -2],
+    [7.999999999999993, 8], [6.000000000000007, 6],
+    [13.6, 14], [14.4, 14], [99.9, 14], [-13.6, -14], [-99.9, -14],
+  ])('setGain(%d) stores, sends and saves %d dB', async (input, stored) => {
+    const r = await boot();
+    r.dsp.eq.setGain(4, input);
+    expect(r.dsp.eq.gains()[4]).toBe(stored);
+    expect(/** @type {number[]} */ (r.since(r.booted).at(-1)?.[1]?.gains)[4]).toBe(stored);
+    expect(JSON.parse(/** @type {string} */ (r.prefs.peek('app').get('eq')))[4]).toBe(stored);
+  });
+
+  it('never stores or sends -0', async () => {
+    const r = await boot();
+    r.dsp.eq.setGain(1, 3);
+    r.dsp.eq.setGain(1, -0.3);                                          // Math.round(-0.3) is -0
+    expect(Object.is(r.dsp.eq.gains()[1], 0)).toBe(true);
+    const sent = /** @type {number[]} */ (r.since(r.booted).at(-1)?.[1]?.gains);
+    expect(Object.is(sent[1], 0)).toBe(true);
+    const before = r.calls.length;
+    r.dsp.eq.setGain(2, -0);                                            // already 0: silent
+    expect(r.calls).toHaveLength(before);
+    expect(r.dsp.eq.gains().every((g) => !Object.is(g, -0))).toBe(true);
+  });
+
+  it('a gain that rounds onto the stored value sends nothing, saves nothing and notifies nobody (G2.F3)', async () => {
+    const r = await boot();
+    r.dsp.eq.setGain(2, 3);
+    let changes = 0;
+    r.dsp.eq.onChange(() => changes++);
+    const sent = r.calls.length;
+    const saved = r.prefs.writes.length;
+    r.dsp.eq.setGain(2, 3.4);
+    r.dsp.eq.setGain(2, 2.6);
+    r.dsp.eq.setGain(5, 0.4);                                           // a flat band stays flat
+    r.dsp.eq.setGain(5, -0.4);
+    expect(changes).toBe(0);
+    expect(r.calls).toHaveLength(sent);
+    expect(r.prefs.writes).toHaveLength(saved);
+    r.dsp.eq.setGain(2, 3.6);                                           // 4: a change
+    expect([changes, r.calls.length - sent, r.dsp.eq.gains()[2]]).toEqual([1, 1, 4]);
+  });
+
+  it('a drag in fractions reaches the audio path as whole dB, one send per step', async () => {
+    const r = await boot();
+    for (const db of [0.2, 0.9, 1.1, 1.6, 2.4, 2.6]) r.dsp.eq.setGain(0, db);
+    expect(r.since(r.booted).map(([, a]) => /** @type {number[]} */ (a?.gains)[0])).toEqual([1, 2, 3]);
+  });
+
+  it.each([
+    [40.4, 40], [40.5, 41], [-40.4, -40], [-40.5, -40], [-40.6, -41],
+    [5.4, 0], [5.5, 6], [-5.4, 0], [-5.5, 0], [-5.6, -6],               // the integer comes first, then the detent
+    [99.6, 100], [-99.6, -100], [250.4, 100], [-250.4, -100],
+  ])('balance.set(%d) stores %d', async (input, stored) => {
+    const r = await boot();
+    r.dsp.balance.set(input);
+    expect(r.dsp.balance.get()).toBe(stored);
+  });
+
+  it('a balance is sent and saved as an integer, never -0, and a rounded repeat is silent', async () => {
+    const r = await boot();
+    r.dsp.balance.set(40.4);
+    r.dsp.balance.set(-0.4);                                            // 40 -> 0, a change
+    expect(r.since(r.booted)).toEqual([['set_balance', { balance: 40 }], ['set_balance', { balance: 0 }]]);
+    expect(r.since(r.booted).every(([, a]) => !Object.is(a?.balance, -0))).toBe(true);
+    expect(r.prefs.peek('app').get('balance')).toBe('0');
+    let changes = 0;
+    r.dsp.balance.onChange(() => changes++);
+    const sent = r.calls.length;
+    const saved = r.prefs.writes.length;
+    r.dsp.balance.set(0.4);                                             // 0 -> 0
+    r.dsp.balance.set(-4.6);                                            // -5: in the detent, 0 -> 0
+    expect(changes).toBe(0);
+    expect(r.calls).toHaveLength(sent);
+    expect(r.prefs.writes).toHaveLength(saved);
+    r.dsp.balance.set(33.4);
+    r.dsp.balance.set(32.6);                                            // 33 -> 33
+    expect([changes, r.calls.length - sent]).toEqual([1, 1]);
+  });
+
+  it('saved values from an earlier build go through the same quantiser, so the boot send is whole too', async () => {
+    const r = await boot({ [PREF_KEY_EQ]: JSON.stringify([2.6, -0.2, -2.5, 99.4]), [PREF_KEY_BALANCE]: '40.6' });
+    expect(r.dsp.eq.gains()).toEqual([3, 0, -2, 14, 0, 0, 0, 0, 0, 0]);
+    expect(r.dsp.eq.gains().every((g) => !Object.is(g, -0))).toBe(true);
+    expect(r.dsp.balance.get()).toBe(41);
+    expect(r.calls).toEqual([
+      ['set_eq', { gains: [3, 0, -2, 14, 0, 0, 0, 0, 0, 0] }],
+      ['set_balance', { balance: 41 }],
+    ]);
+    expect((await boot({ [PREF_KEY_BALANCE]: '5.4' })).dsp.balance.get()).toBe(0);
+  });
+
+  it('stores exactly what the test host\'s fake stores, for gains and balance alike', async () => {
+    const inputs = [0, -0, 0.4, -0.4, 0.5, -0.5, 1.5, -1.5, 2.5, -2.5, 5, 5.4, 5.5, -5.4, -5.5, 6, 13.5, 14.4, 14.5, 99.5, -99.5, 100.4, 250.5, -250.5];
+    const r = await boot();
+    const fake = fakeDsp.createFakeDsp();
+    for (const v of inputs) {
+      r.dsp.eq.setGain(3, v);
+      fake.eq.setGain(3, v);
+      r.dsp.balance.set(v);
+      fake.balance.set(v);
+      expect(r.dsp.eq.gains(), `gain ${v}`).toEqual(fake.eq.gains());
+      expect(r.dsp.balance.get(), `balance ${v}`).toBe(fake.balance.get());
+    }
   });
 });

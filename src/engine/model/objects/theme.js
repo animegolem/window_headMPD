@@ -4,7 +4,9 @@
 //
 //   theme   preferences (`"--"` when unset, D6.4, 83 of 94 corpus skins test for it), `loadString`
 //           (wmploc 7.7), `logString`, the skin's author, title and copyright, and the view verbs of
-//           phase 1: other views are neither opened nor closed, only logged (D6.5).
+//           phase 1. The skin has one frame on screen, so a verb that in WMP replaces the view shown
+//           hands that frame to the other view (`handOverTarget` below; the view runtime makes the
+//           switch after the dispatch). Any other view is neither opened nor closed, only logged (D6.5).
 //   view    the VIEW element's attributes plus the verbs that act on the skin's frame. `close` and `minimize` are honoured
 //           only inside a user gesture, so a skin cannot close itself at every launch (D6.5).
 //           `returnToMediaCenter` is a host action (default zoom toggle, parity D3).
@@ -22,6 +24,51 @@ import { elementAttrs } from './element.js';
 /** `theme.logString` is for debugging; a flood of it is a flood of host log lines. */
 const MAX_LOG_LINES = 200;
 const MAX_LOG_CHARS = 512;
+
+/** @typedef {import('../../contracts').ThemeModel} ThemeModel */
+/** @typedef {import('../../contracts').ViewModel} ViewModel */
+
+/** A VIEW of the theme by id: exact, then case-insensitive, as index.js finds a view to attach. @param {ThemeModel} theme @param {unknown} id */
+function viewNamed(theme, id) {
+  const wanted = text(id ?? '');
+  if (wanted === '') return null;
+  const lower = wanted.toLowerCase();
+  return theme.views.find((v) => v.view.id === wanted) ?? theme.views.find((v) => v.view.id.toLowerCase() === lower) ?? null;
+}
+
+/** Whether a view has nothing to show: no width or no height in the model. @param {ViewModel} view */
+const hasNoArea = (view) => {
+  const w = view.view.get('width');
+  const h = view.view.get('height');
+  return !(typeof w === 'number' && w > 0 && typeof h === 'number' && h > 0);
+};
+
+/**
+ * The view a script's theme op hands the skin's frame to, or null (5F.6). Phase 1 shows one view at a
+ * time, so the ops that in WMP close the view shown and open another one switch the view shown:
+ *   - a write of `currentViewID` naming another VIEW of the theme: it "automatically closes the existing
+ *     currentView and opens the specified VIEW" (spec 6.1). 34 corpus skins start on a splash view that
+ *     hands over this way;
+ *   - `openView`/`openViewRelative` of another VIEW while the view shown has no area: a splash
+ *     that collapsed itself, or a control view that only opens the others (14 of those 34 hand over to
+ *     a size-less `controlView` whose `onload` opens `mainView`). It has nothing to show, so the frame
+ *     goes to the view it opens.
+ * Opening a view from a view that shows something stays phase 3. The theme object asks this to stay
+ * quiet about the hand-overs; the view runtime asks it of every script op on the theme object and
+ * makes the switch after the dispatch.
+ * @param {ThemeModel} theme
+ * @param {ViewModel} view the view the script runs in
+ * @param {string} member the member, lowercased: `currentviewid`, `openview` or `openviewrelative`
+ * @param {unknown} id what the script gave
+ * @returns {ViewModel | null}
+ */
+export function handOverTarget(theme, view, member, id) {
+  if (member !== 'currentviewid' && member !== 'openview' && member !== 'openviewrelative') return null;
+  const target = viewNamed(theme, id);
+  if (!target || target === view) return null;
+  if (member === 'currentviewid') return target;
+  return hasNoArea(view) ? target : null;
+}
 
 /** @param {import('./index.js').Env} env @returns {GraphObject} */
 export function createThemeObject(env) {
@@ -44,6 +91,16 @@ export function createThemeObject(env) {
 
   /** @param {unknown} id @returns {boolean} whether it names the view that is open */
   const isCurrent = (id) => text(id ?? '').toLowerCase() === view.view.id.toLowerCase();
+
+  /**
+   * A view verb naming another view: a hand-over is the runtime's to make (`handOverTarget`), anything
+   * else opens in phase 3, and is logged and ledgered.
+   * @param {string} api @param {string} member lowercased @param {unknown} id
+   */
+  const otherView = (api, member, id) => {
+    if (isCurrent(id) || handOverTarget(theme, view, member, id)) return;
+    policy.foreignView(api, text(id ?? ''));
+  };
 
   return makeObject(env, 'theme', {
     savePreference: {
@@ -77,12 +134,13 @@ export function createThemeObject(env) {
     copyright: metaField('copyright'),
     authorVersion: { get: () => '' },
     version: { get: () => 1 },                                // "the value is always 1.0" (spec 6.1)
+    // The view this graph belongs to: after a hand-over the new view has a graph of its own.
     currentViewID: {
       get: () => view.view.id,
-      set: (v) => { if (!isCurrent(v)) policy.foreignView('theme.currentViewID', text(v ?? '')); },
+      set: (v) => otherView('theme.currentViewID', 'currentviewid', v),
     },
-    openView: { call: ([id]) => { if (!isCurrent(id)) policy.foreignView('theme.openView', text(id ?? '')); } },
-    openViewRelative: { call: ([id]) => { if (!isCurrent(id)) policy.foreignView('theme.openViewRelative', text(id ?? '')); } },
+    openView: { call: ([id]) => otherView('theme.openView', 'openview', id) },
+    openViewRelative: { call: ([id]) => otherView('theme.openViewRelative', 'openviewrelative', id) },
     closeView: {
       call: ([id], ctx) => {
         if (!isCurrent(id)) { policy.foreignView('theme.closeView', text(id ?? '')); return; }

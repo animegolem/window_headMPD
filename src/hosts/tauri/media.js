@@ -56,6 +56,15 @@
 
 /** parity D18: the oracle debounces volume input at 40 ms (main.js:102-103). */
 export const VOLUME_COALESCE_MS = 40;
+
+/**
+ * parity D31: the host binding quantises volume to an integer in 0..100 with the legacy's
+ * `Math.round`, so `setvol` never gets a fraction. `Math.max(0, -0)` is +0 (the spec ranks +0 above
+ * -0), so a write like -0.4 cannot send or hold -0.
+ * @param {number} v
+ */
+const wholeVolume = (v) => Math.min(100, Math.max(0, Math.round(v)));
+
 /** A pending command stops counting after this long even if no new status arrived (a `play` on an empty
  *  queue changes nothing, so MPD sends no idle notice to retire it). */
 export const PENDING_TTL_MS = 1500;
@@ -423,7 +432,7 @@ export function createMpdMediaModel(player, mpd, opts = {}) {
 
     setVolume(v) {
       if (typeof v !== 'number' || !Number.isFinite(v)) return Promise.resolve();
-      volumeTarget = Math.min(100, Math.max(0, Math.round(v)));
+      volumeTarget = wholeVolume(v);
       return new Promise((resolve, reject) => {
         volumeWaiters.push({ resolve, reject });
         if (volumeTimer !== null) timers.clearTimeout(volumeTimer);

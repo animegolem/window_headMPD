@@ -36,6 +36,17 @@
       "why": "the engine puts the reset label at eq1.top + 83 = 127; the oracle at 129"
     },
     {
+      "id": "reset-underline-raster",
+      "kind": "pixel",
+      "configs": ["compat"],
+      "states": ["S2", "S2b"],
+      "region": { "kind": "rect", "rect": [243, 235, 244, 236] },
+      "bound": 1,
+      "exact": false,
+      "ref": "G4 ruling, 5F.1",
+      "why": "the anti-aliased end pixel of the reset underline is #a5b39c in the engine and #a5b39b in the oracle (blue, one unit). The text box and the background pixel under it are identical, and the node's own HTML renders either value depending on the page; what differs is the surface under the pixel: the engine's keyed bitmaps are <canvas> elements, which Chromium composites as their own layers, so the compositor blends the text over them, while the oracle's <img> shares the text's layer and the rasteriser blends it. A 1x1 repro (the same underlined text over a div or <img> against a <canvas>) flips the value. Compat only: in faithful, D20-reset-y holds the pixel. Added by 5F.1 under its card's second clause; stale if a Chromium or surface change makes it match"
+    },
+    {
       "id": "D21-preset-title",
       "kind": "pixel",
       "configs": ["faithful"],
@@ -78,6 +89,50 @@
       "exact": false,
       "ref": "spec 2.7, E 2 window shape",
       "why": "a BUTTON receives clicks on its transparent keyed pixels; the oracle's alpha mask does not. Defined at check time as faithfulMask XOR compatMask; measured at G4 (a judge measured 130 EQ handle + 135 PL handle, about 265 per state). Bound set at G4 from the measured count (265 in S1, S2, S4 at DPR 1)"
+    },
+    {
+      "id": "legacy-viz-mask-bleed-left",
+      "kind": "pixel",
+      "configs": ["compat", "faithful"],
+      "states": "all",
+      "region": { "kind":  "rect",  "rect":  [270,  59,  277,  76]},
+      "bound": 23,
+      "exact": false,
+      "ref": "G5 ruling, 5F.2",
+      "why": "at DPR 2 the oracle's #viz mask (vid_bkgd.png) is filtered with image-rendering: auto (style.css:48-50, 130-133) and bleeds about one device pixel into the screen's top-left corner, where head.bmp is the red clipping colour; the engine clips those pixels by D26 and cannot paint them. Measured 23 px at DPR 2, 0 at DPR 1"
+    },
+    {
+      "id": "legacy-viz-mask-bleed-right",
+      "kind": "pixel",
+      "configs": ["compat", "faithful"],
+      "states": "all",
+      "region": { "kind":  "rect",  "rect":  [480,  59,  486,  70]},
+      "bound": 16,
+      "exact": false,
+      "ref": "G5 ruling, 5F.2",
+      "why": "the same oracle mask bleed at the screen's top-right corner. Measured 16 px at DPR 2, 0 at DPR 1"
+    },
+    {
+      "id": "legacy-track-smoothing",
+      "kind": "pixel",
+      "configs": ["compat", "faithful"],
+      "states": ["S2", "S2b"],
+      "region": { "kind":  "rect",  "rect":  [92,  107,  244,  216]},
+      "bound": 6670,
+      "exact": false,
+      "ref": "G5 ruling, 5F.2",
+      "why": "the oracle sets image-rendering: pixelated only on img and canvas (style.css), so its slider .track border-image is filtered bilinear at DPR 2; the engine draws tracks crisp per E D2. Ruled at G5: the engine keeps the crisp tracks (no compat smoothing switch). Measured 6,670 px at DPR 2 across the 12 EQ-drawer tracks, 0 at DPR 1"
+    },
+    {
+      "id": "playlist-icon-raster",
+      "kind": "pixel",
+      "configs": ["compat", "faithful"],
+      "states": ["S3", "S3b"],
+      "region": { "kind": "rect", "rect": [506, 101, 518, 113] },
+      "bound": 10,
+      "exact": false,
+      "ref": "G5 ruling, W5.1 triage",
+      "why": "the playlist combo's 12x12 CD icon (an SVG data-URI img) rasterises a few edge pixels differently in the engine's windowed widget layer than in the legacy combo; 9 px at DPR 1, 10 at DPR 2. Root cause not proven (likely the 5F.1 compositing class); allowed under the owner's working-first policy with a tight bound"
     }
   ]
 }

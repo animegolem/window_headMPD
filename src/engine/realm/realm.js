@@ -59,7 +59,9 @@
 //
 // The membrane's `has` sets come from `classMembers` and `setIds`. `setIds` carries no per-element list
 // of markup attributes, so an element proxy's `has` answers from its class members only; a view runtime
-// that wants a markup-only attribute in scope registers it as a member of a class of its own.
+// that wants a markup-only attribute in scope registers it as a member of a class of its own. Event-handler
+// attributes (`on*`, and the PLAYER's bare event names) are left out of `has`, so a handler's bare
+// `OnClose()` reaches the script global (5F.7, prelude.js).
 //
 // Diagnostics the realm emits are capped per code and view (E §10 "realm diagnostics"): 64, then one
 // `<code>-capped`, so no skin can grow the host log without bound (G2 DOS-7, F7).

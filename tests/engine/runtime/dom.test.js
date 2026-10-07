@@ -4,7 +4,8 @@
 // layer tree mounted, the first shape sent, then pointer gestures through the input plane into the
 // realm, script `view.width` writes forwarded to `requestSize` (G2) without the frame or its mask
 // changing size (D7.3), a click on an EFFECTS element with no `onclick` going to the host, keys the
-// skin handles marked `defaultPrevented` (G3), and shapes sent only when their bits change.
+// skin handles marked `defaultPrevented` (G3), shapes sent only when their bits change, and a hand-over
+// to another view in the same root (5F.6).
 // happy-dom has no 2D context, so the renderer tests' recording stand-in is used.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { stubCanvas } from '../render/helpers.js';
@@ -131,6 +132,56 @@ describe('the runtime with a window', () => {
     document.body.dispatchEvent(e);
     expect(e.defaultPrevented).toBe(true);
     expect(trace(host)).toContain('skin: key 32');
+  });
+
+  it('hands the window to another view: one layer tree, the new frame, its shape and its input (5F.6)', async () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const host = createTestHost({ window: { root } });
+    const wms = `<THEME>
+<VIEW id="splash" width="120" height="80" backgroundColor="#203040" onload="view.width = 0; view.height = 0; theme.currentViewID = 'main';"/>
+<VIEW id="main" width="200" height="100" backgroundColor="none">
+  <button id="b" left="10" top="10" image="red.bmp" onclick="theme.logString('main click');"/>
+</VIEW>
+</THEME>`;
+    const { runtime, skin } = await open(skinZip({ wms, files: { 'red.bmp': bmp(20, 10, [200, 30, 30]) } }), { host });
+    mounted.push(skin);
+    expect(runtime.viewId).toBe('main');
+    expect(root.querySelectorAll('div.view')).toHaveLength(1);
+    expect(runtime.inspector.root()).toBe(root.firstElementChild);
+    expect(host.window.recorded.initialSizes).toEqual([{ w: 120, h: 80 }, { w: 200, h: 100 }]);
+    const shape = /** @type {import('../../../src/engine/contracts').MaskShape} */ (host.window.recorded.shapes.at(-1));
+    expect([shape.width, shape.height]).toEqual([200, 100]);
+    expect(bitAt(shape, 15, 15)).toBe(1);
+    expect(bitAt(shape, 100, 60)).toBe(0);
+    const plane = /** @type {HTMLElement} */ (root.querySelector('div.input'));
+    for (const type of ['pointerdown', 'pointerup']) {
+      plane.dispatchEvent(new PointerEvent(type, { clientX: 15, clientY: 15, pointerId: 1, pointerType: 'mouse', isPrimary: true, bubbles: true, cancelable: true, button: 0, buttons: type === 'pointerdown' ? 1 : 0 }));
+    }
+    expect(trace(host)).toContain('skin: main click');
+  });
+
+  it('refuses a second attach after a hand-over, so the root keeps one layer tree (5F.8)', async () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const host = createTestHost({ window: { root } });
+    const wms = `<THEME>
+<VIEW id="splash" width="120" height="80" backgroundColor="#203040" onload="theme.currentViewID = 'main';"/>
+<VIEW id="main" width="200" height="100" backgroundColor="#405060"/>
+</THEME>`;
+    const { runtime, skin } = await open(skinZip({ wms }), { host });
+    mounted.push(skin);
+    expect(runtime.viewId).toBe('main');
+    // The guard was keyed on 'splash', so asking for the view now shown mounted a second renderer.
+    await expect(skin.attach('main')).rejects.toThrow(/already attached/);
+    await expect(skin.attach('splash')).rejects.toThrow(/already attached/);
+    expect(root.querySelectorAll('div.view')).toHaveLength(1);
+    expect(root.querySelectorAll('div.input')).toHaveLength(1);
+    runtime.dispose();
+    expect(root.querySelectorAll('div.view')).toHaveLength(0);
+    const again = await skin.attach('main');
+    expect(again.viewId).toBe('main');
+    expect(root.querySelectorAll('div.view')).toHaveLength(1);
   });
 
   it('stops listening on dispose: no shape, no handler, onclose ran', async () => {

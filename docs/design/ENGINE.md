@@ -36,7 +36,7 @@ gates, re-pins, triage).
 ## 0. Summary
 
 1. **Skin script runs in QuickJS compiled to WASM**, synchronously on the main thread of the skin's
-   webview. The realm is one module instance per skin session, one context per VIEW, and sits behind
+   webview. The realm is one module instance, runtime and context per VIEW, and sits behind
    a copy-only membrane: primitives and revocable integer handles cross it, nothing else does. Element
    ids resolve through a `with`-scoped Proxy whose `has` trap answers from realm-side sets, so unknown
    names still throw `ReferenceError`. Budgets use the real wall clock. A fault aborts one dispatch;
@@ -219,9 +219,10 @@ side effects on import, so legacy behaviour is unchanged. The engine path is loa
   geometry, prefs) is already in memory, so host functions never await. Asyncify is roughly twice the
   size and slower, and buys nothing.
 - **Instances and contexts.** The `WebAssembly.Module` is compiled once per webview and cached. Each
-  skin session gets **one module instance** (cand-F) with one `QuickJSRuntime`, and each VIEW gets
-  one `QuickJSContext` (`spec 2.1` step 3: each view has its own scope). Phase 1 runs one VIEW per
-  webview, so in practice it is one context per instance.
+  VIEW gets **its own module instance** (cand-F): `createRealm` builds a fresh capped
+  `WebAssembly.Memory`, instance, `QuickJSRuntime` and `QuickJSContext` on every call, and
+  `attachView` calls it once per view (`spec 2.1` step 3: each view has its own scope). A WASM trap,
+  OOM or budget fault in one view therefore never touches another view's heap.
 - **Fault domain.** cand-F probe-1 shows that a leaked handle makes `JS_FreeRuntime` abort the
   emscripten module (`Assertion failed: list_empty(&rt->gc_obj_list)`). Rules: after any WASM abort,
   OOM, or a health check that finds leaked handles, the engine **never calls `dispose` again**. It
@@ -239,7 +240,9 @@ host globals**. The single exception (G17): an id that equals a host-global name
   parameter names in exact case (`NewState`, `ModeName`, `scType`, `NewValue`, `Param`,
   `oldPosition`, `newPosition`; `spec 2.2`, `6.19`).
 - The element proxy's `has` answers true only for members of the element's class plus attributes
-  present in its markup, compared case-insensitively. Anything else falls through.
+  present in its markup, compared case-insensitively. Anything else falls through. Event-handler
+  attributes (`on*`, and the PLAYER's bare event names) are never in `has`: they are not readable
+  properties in WMP's object model, so a handler's bare `OnClose()` reaches the script global (5F.7).
 - `__IDS` is a realm-side Proxy. `has(k)` is true when (a) k equals a VIEW id exactly, or (b) k
   equals an id case-insensitively **and** no own property named exactly k exists on the realm global
   (so `Volume` reaches id `volume`, `survey 3.1` Ice, while a skin's own `function volume()` beats
@@ -428,6 +431,10 @@ SkinWindow.root (host-owned, transparent)
 - **SUBVIEW `clippingColor`/`clippingImage`** becomes `-webkit-mask-image` on the `div.sv`, from a
   PNG data URL the engine generates from the clip bits at native size, not stretched. It clips
   overlays too (`parity` D26) and matches the oracle's own `mask-image` mechanism (`css:130-135`).
+  Three VIEW rulings from the corpus (5F.5, G5). (1) A VIEW whose clip keeps no pixel is not masked,
+  because Gorillaz's 50×28 tile is entirely clipping colour under a head its children draw; SUBVIEWs
+  stay masked, and a tiled background tiles its mask. (2) `visible="false"` on a VIEW is ignored.
+  (3) A VIEW with no size takes its background image's size, else the box of its children.
   `transparencyColor` on a SUBVIEW keys only its background canvas, so negative-z children show
   through.
 - **Windowed controls** sit in the top layer: they "always paint above windowless controls" and
@@ -1930,10 +1937,15 @@ the implementing task.
 | `effects-hole` | pixel exclusion | both | all | `head.bmp` pixels equal to `#FF00FF`, offset (261, 0) | 31,487 px (exact) | the visualizer is stubbed differently on each side (`parity 4.1`) |
 | `U-23-showBackground` | pixel | faithful | all | pixels of each BUTTONGROUP rect owned by no `mappingColor`, from the maps | measured at G4; `spec 6.5` predicts ~811 in the transport group and 1 in min/close | engine follows the docs (unowned not painted); the oracle paints them |
 | `D20-reset-y` | pixel | faithful | S2, S2b | rect (222,221)-(258,238) | rect area | engine puts `reset` at `eq1.top + 83` = 127; oracle at 129 |
+| `reset-underline-raster` | pixel | compat | S2, S2b | rect (243,235)-(244,236), one skin px | 1 | the `reset` underline's anti-aliased end pixel is `#a5b39c` in the engine and `#a5b39b` in the oracle: the same text blended over a composited `<canvas>` layer (engine keyed bitmaps) instead of an `<img>` in the text's own layer (5F.1; repro: `<canvas>` vs `<img>` under 9 px underlined text) |
 | `D21-preset-title` | pixel | faithful | S4 | rect (321,65)-(426,82) | rect area | engine uses the 10 pt default = 13 px; oracle 9 px |
 | `U-10-slider-travel` | pixel | faithful | all | slider rects | **0** | `sliderGeometry: 'oracle'` in both configs; the entry exists so flipping the switch comes with its region |
 | `D11-screen-corners` | mask | both | all | the 106 white pixels of `vid_bkgd.bmp`, offset (270, 59) | 106 (exact) | the oracle counts the effects canvas as a solid rect (`parity 4.1`) |
 | `button-transparency` | mask | faithful | all | keyed pixels of interactive BUTTON images not covered by any painted pixel | measured at G4; a judge measured 130 (EQ handle) + 135 (PL handle) ≈ 265 per state | BUTTON receives clicks on transparency (`spec 2.7`); the oracle's alpha mask does not |
+| `legacy-viz-mask-bleed-left` | pixel | both | all | rect (270,59)-(277,76) | 23 | at DPR 2 the oracle's `#viz` mask is smoothed (`image-rendering: auto`) and bleeds into the screen corner the engine clips by D26 (G5, 5F.2) |
+| `legacy-viz-mask-bleed-right` | pixel | both | all | rect (480,59)-(486,70) | 16 | the same bleed at the top-right corner (G5, 5F.2) |
+| `legacy-track-smoothing` | pixel | both | S2, S2b | rect (92,107)-(244,216) | 6,670 | the oracle's slider `.track` border-image is smoothed at DPR 2 (pixelated only on `img`/`canvas`); the engine keeps crisp tracks per D2 (G5 ruling: no compat smoothing switch) |
+| `playlist-icon-raster` | pixel | both | S3, S3b | rect (506,101)-(518,113) | 10 | the playlist combo's 12×12 SVG CD icon rasterises a few edge pixels differently in the engine's widget layer (G5; cause unproven, working-first policy) |
 
 Owner-visible consequences, accepted under `parity 0.1` rule 1: the ~811 px around the transport
 buttons, the preset title size, and reset 2 px higher. If the owner prefers the oracle's look for
@@ -2152,3 +2164,4 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 - Live popcounts from G0: 89,328 / 122,636 / 123,258 / 89,328 (S1–S4), equal to the emulation bit for bit; S5/S6/S7 keep S1's mask.
 - Oracle pin after the G3 re-pin (ten pinned files, `clickthrough.rs` removed): `1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2`; all 42 manifest slots (21 states × DPR 1, 2) carried over with identical PNG and mask hashes.
 - Measured bounds from G4 (faithful, S1/S2/S4 at DPR 1): `U-23-showBackground` 812 px, `button-transparency` 265 px; compat mask XOR 106 (the screen corners).
+- 5F.1: compat S2/S2b differ from the oracle at one skin px, (243,235), at DPR 1 and 2 (a one-unit blue-channel difference at the end of the `reset` underline); absorbed by `reset-underline-raster`, bound 1.

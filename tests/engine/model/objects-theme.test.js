@@ -1,7 +1,8 @@
 // @ts-check
 import { describe, expect, it } from 'vitest';
+import { handOverTarget } from '../../../src/engine/model/objects/theme.js';
 import { PREF_CAPS } from '../../../src/engine/model/policy.js';
-import { makeGraph } from './objects-fakes.js';
+import { buildView, makeGraph } from './objects-fakes.js';
 
 describe('theme preferences (acceptance 4)', () => {
   it("loadPreference of a key never saved is '--'", () => {
@@ -174,7 +175,7 @@ describe('theme.loadString and the metadata', () => {
     expect(c['theme.showErrorDialog stub']).toBe(1);
   });
 
-  it('phase 1 opens and closes no other view: it is logged and ledgered, the current view is untouched', () => {
+  it('phase 1 opens and closes no view the theme does not have: it is logged and ledgered, the current view is untouched', () => {
     const t = makeGraph();
     expect(t.read('theme.currentViewID')).toBe('view1');
     t.call('theme.openView', ['plView']);
@@ -199,6 +200,70 @@ describe('theme.loadString and the metadata', () => {
     expect(t.counts()['theme.closeView denied']).toBe(1);
     t.call('theme.closeView', ['VIEW1'], { gesture: true });
     expect(t.actionLog.run).toEqual([['close', { viewId: 'view1' }]]);
+  });
+});
+
+describe('hand-over of the main window (5F.6)', () => {
+  /** @param {string} id @param {number} width @param {number} height @param {number} firstHandle */
+  const viewOf = (id, width, height, firstHandle) => buildView([{ kind: 'view', id, attrs: { width, height } }], { firstHandle }).view;
+
+  /** A graph whose theme also has `plView` (sized) and `controlView` (no area), and the two of them. */
+  const twoViews = () => {
+    const t = makeGraph();
+    const pl = viewOf('plView', 240, 157, 1000);
+    const control = viewOf('controlView', 0, 0, 1100);
+    /** @type {any[]} */ (t.theme.views).push(pl, control);
+    return { t, pl, control };
+  };
+
+  it('a currentViewID write naming another view of the theme is a hand-over, any case', () => {
+    const { t, pl } = twoViews();
+    const theme = /** @type {any} */ (t.theme);
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', 'plView')).toBe(pl);
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', 'PLVIEW')).toBe(pl);
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', 'view1')).toBeNull();      // the view shown
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', 'noSuchView')).toBeNull();
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', '')).toBeNull();
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', null)).toBeNull();
+    expect(handOverTarget(theme, t.model.view, 'author', 'plView')).toBeNull();
+  });
+
+  it('openView hands over only from a view with no area', () => {
+    const { t, pl, control } = twoViews();
+    const theme = /** @type {any} */ (t.theme);
+    expect(handOverTarget(theme, t.model.view, 'openview', 'plView')).toBeNull();          // view1 is 549x394
+    expect(handOverTarget(theme, control, 'openview', 'plView')).toBe(pl);
+    expect(handOverTarget(theme, control, 'openviewrelative', 'plView')).toBe(pl);
+    expect(handOverTarget(theme, control, 'closeview', 'plView')).toBeNull();
+    t.model.view.view.set('width', 0, 'script');
+    expect(handOverTarget(theme, t.model.view, 'openview', 'plView')).toBe(pl);
+  });
+
+  it('a view id is matched by value, never through an inherited member', () => {
+    const t = makeGraph();
+    const proto = viewOf('__proto__', 10, 10, 1000);
+    const ctor = viewOf('constructor', 10, 10, 1100);
+    /** @type {any[]} */ (t.theme.views).push(proto, ctor);
+    const theme = /** @type {any} */ (t.theme);
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', '__proto__')).toBe(proto);
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', 'constructor')).toBe(ctor);
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', 'toString')).toBeNull();
+    expect(handOverTarget(theme, t.model.view, 'currentviewid', 'hasOwnProperty')).toBeNull();
+  });
+
+  it('the theme object stays quiet about a hand-over and ledgers the rest as before', () => {
+    const { t } = twoViews();
+    t.write('theme.currentViewID', 'plView');                // the runtime switches: not a stub
+    t.call('theme.openView', ['plView']);                     // a second window from a sized view: phase 3
+    t.write('theme.currentViewID', 'nowhere');
+    const c = t.counts();
+    expect(c['theme.currentViewID stub']).toBe(1);
+    expect(c['theme.openView stub']).toBe(1);
+    expect(t.read('theme.currentViewID')).toBe('view1');      // the view this graph belongs to
+    t.model.view.view.set('width', 0, 'script');
+    t.call('theme.openView', ['plView']);                     // from a view with no area: a hand-over
+    expect(t.counts()['theme.openView stub']).toBe(1);
+    expect(t.actionLog.run).toEqual([]);
   });
 });
 

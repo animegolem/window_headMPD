@@ -2,9 +2,14 @@
 // The Tauri-side DspPort (ENGINE.md §5.6, D6, D11): the host-side EQ and balance state the object model
 // reads and writes, sent to the audio path with `invoke('set_eq')` and `invoke('set_balance')` and
 // persisted through a PrefStore. Same rules as the test host's fake (src/hosts/test/dsp.js), which the
-// engine's tests run against: ten bands clamped to ±14 dB (`eq.rs` clamps there too), balance clamped
-// to ±100 with the ±5 detent, an unchanged value is a no-op and `onChange` fires only when a stored
-// value actually changes (a clamped or detented write that leaves the value where it was is silent).
+// engine's tests run against: ten bands clamped to ±14 dB (`eq.rs` clamps there too) and rounded to
+// whole dB, balance clamped to ±100, rounded to an integer and detented at ±5, an unchanged value is
+// a no-op and `onChange` fires only when a stored value actually changes (a clamped, rounded or
+// detented write that leaves the value where it was is silent).
+//
+// The rounding is parity D31: the engine keeps slider values continuous and the host binding
+// quantises, as the legacy sliders handed `main.js` whole numbers. `Math.round` is the legacy's own
+// rounding (half toward +Infinity), and a saved value passes through the same quantiser as a write.
 //
 // Persistence is the `app` namespace under the legacy key names, with the legacy value format: `eq` is
 // the JSON array `main.js` kept in localStorage (`[0,0,...]`), `balance` the JSON number. That is what
@@ -37,17 +42,26 @@ export const PREFS_NS = 'app';
 export const PREF_KEY_EQ = 'eq';
 export const PREF_KEY_BALANCE = 'balance';
 
-/** @param {number} db */
-const clampGain = (db) => Math.min(EQ_LIMIT_DB, Math.max(-EQ_LIMIT_DB, db));
-/** @param {number} v */
+/**
+ * Whole dB inside ±14. `+ 0` turns the -0 that `Math.round(-0.3)` gives into 0: -0 would print as
+ * `0` but `Object.is` and a JSON round trip tell it apart from the stored 0.
+ * @param {number} db
+ */
+const wholeDb = (db) => Math.round(Math.min(EQ_LIMIT_DB, Math.max(-EQ_LIMIT_DB, db))) + 0;
+/**
+ * Clamp, round to a whole number, then the detent. The integer comes first so a value that rounds
+ * into the detent (5.4) still snaps to 0, as the legacy's integer slider value did at `main:86`; the
+ * detent returns a literal 0, never -0.
+ * @param {number} v
+ */
 const detent = (v) => {
-  const c = Math.min(100, Math.max(-100, v));
-  return Math.abs(c) <= BALANCE_DETENT ? 0 : c;
+  const r = Math.round(Math.min(100, Math.max(-100, v)));
+  return Math.abs(r) <= BALANCE_DETENT ? 0 : r;
 };
 
 /**
  * A persisted `eq` value as ten gains: anything unreadable is flat, a short or long array is padded
- * with zeros or cut, each gain is clamped. @param {string | undefined} raw
+ * with zeros or cut, each gain is clamped and rounded. @param {string | undefined} raw
  */
 function parseGains(raw) {
   /** @type {unknown} */
@@ -58,7 +72,7 @@ function parseGains(raw) {
   const src = Array.isArray(parsed) ? parsed : [];
   return Array.from({ length: EQ_BANDS }, (_, i) => {
     const v = src[i];
-    return typeof v === 'number' && Number.isFinite(v) ? clampGain(v) : 0;
+    return typeof v === 'number' && Number.isFinite(v) ? wholeDb(v) : 0;
   });
 }
 
@@ -130,8 +144,8 @@ export async function createTauriDsp(invoke, prefs, opts = {}) {
   /**
    * Store ten gains. A change goes to the audio path (all ten, as `set_eq` takes), to the prefs and to
    * the listeners. A write that leaves every stored value where it was, because the clamp pulled it back
-   * to the value already held, is silent, as in the test host: listeners hear about stored values, not
-   * about requests.
+   * to the value already held or the rounding landed on it (3.2 while at 3), is silent, as in the test
+   * host: listeners hear about stored values, not about requests.
    * @param {number[]} next the stored values
    */
   const commitGains = (next) => {
@@ -151,7 +165,7 @@ export async function createTauriDsp(invoke, prefs, opts = {}) {
         if (!Number.isInteger(band) || band < 0 || band >= EQ_BANDS) throw new RangeError(`eq band ${band}: expected an integer 0..${EQ_BANDS - 1}`);
         if (typeof db !== 'number' || !Number.isFinite(db)) return;
         const next = [...gains];
-        next[band] = clampGain(db);
+        next[band] = wholeDb(db);
         commitGains(next);
       },
 
@@ -180,7 +194,8 @@ export async function createTauriDsp(invoke, prefs, opts = {}) {
       /**
        * The DSP gets the detented value (4 goes to it as 0) and so does the store: a thumb dragged
        * through the centre is told 0 when the stored value moves (parity D17). A write that lands on the
-       * value already held (3 while centred) changes nothing and is silent, as in the test host.
+       * value already held (3 while centred, 40.4 while at 40) changes nothing and is silent, as in the
+       * test host.
        */
       set(v) {
         if (typeof v !== 'number' || !Number.isFinite(v)) return;

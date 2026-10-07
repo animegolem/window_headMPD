@@ -15,7 +15,7 @@
   ],
   "attrs": [
     { "ref": "seek", "name": "x-foregroundMode", "value": "playhead" },
-    { "ref": "pl", "name": "backgroundColor", "value": "#285F03" },
+    { "ref": "pl", "name": "backgroundColor", "value": "none" },
     { "ref": "pl", "name": "foregroundColor", "value": "#FFFFFF" },
     { "ref": "pl", "name": "itemPlayingColor", "value": "#A9FF2B" },
     { "ref": "pl", "name": "itemSelectedBackgroundColor", "value": "#1C4702" }

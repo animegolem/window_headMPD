@@ -39,15 +39,20 @@ describe('the committed allow-list (E 9)', () => {
   const list = parseAllowlist(readFileSync(ALLOWLIST_PATH, 'utf8'));
   const at = (id) => list.entries.get(id);
 
-  it('has exactly the seven entries of E 9, in its order', () => {
+  it('has exactly the twelve entries of E 9, in its order', () => {
     expect([...list.entries.keys()]).toEqual([
       'effects-hole',
       'U-23-showBackground',
       'D20-reset-y',
+      'reset-underline-raster',
       'D21-preset-title',
       'U-10-slider-travel',
       'D11-screen-corners',
       'button-transparency',
+      'legacy-viz-mask-bleed-left',
+      'legacy-viz-mask-bleed-right',
+      'legacy-track-smoothing',
+      'playlist-icon-raster',
     ]);
   });
 
@@ -66,6 +71,7 @@ describe('the committed allow-list (E 9)', () => {
     expect(row('effects-hole')).toEqual(['pixel-exclusion', 'compat+faithful', 'all', 'effects-hole']);
     expect(row('U-23-showBackground')).toEqual(['pixel', 'faithful', 'all', 'unowned-buttongroup']);
     expect(row('D20-reset-y')).toEqual(['pixel', 'faithful', 'S2+S2b', [222, 221, 258, 238]]);
+    expect(row('reset-underline-raster')).toEqual(['pixel', 'compat', 'S2+S2b', [243, 235, 244, 236]]);
     expect(row('D21-preset-title')).toEqual(['pixel', 'faithful', 'S4', [321, 65, 426, 82]]);
     expect(row('U-10-slider-travel')).toEqual(['pixel', 'faithful', 'all', 'sliders']);
     expect(row('D11-screen-corners')).toEqual(['mask', 'compat+faithful', 'all', 'screen-corners']);
@@ -79,6 +85,8 @@ describe('the committed allow-list (E 9)', () => {
     // "rect area", half-open: (258-222) x (238-221) and (426-321) x (82-65)
     expect(at('D20-reset-y').bound).toBe(36 * 17);
     expect(at('D21-preset-title').bound).toBe(105 * 17);
+    // 5F.1: one skin px, not exact, so a Chromium that matches the oracle reports "absorbed nothing" instead of failing.
+    expect(at('reset-underline-raster')).toMatchObject({ bound: 1, exact: false });
     // Measured at G4 (faithful S1/S2/S4 at DPR 1) and set by O; nothing is left in measure mode.
     expect(at('U-23-showBackground').bound).toBe(812);
     expect(at('button-transparency').bound).toBe(265);
@@ -99,9 +107,13 @@ describe('the committed allow-list (E 9)', () => {
 
   it('selects the entries of a configuration and state', () => {
     const ids = (config, state) => activeEntries(list, { config, state }).map((e) => e.id);
-    expect(ids('compat', 'S1')).toEqual(['effects-hole', 'D11-screen-corners']);
-    expect(ids('compat', 'S2b')).toEqual(['effects-hole', 'D11-screen-corners']);
-    expect(ids('faithful', 'S1')).toEqual(['effects-hole', 'U-23-showBackground', 'U-10-slider-travel', 'D11-screen-corners', 'button-transparency']);
+    expect(ids('compat', 'S1')).toEqual(['effects-hole', 'D11-screen-corners', 'legacy-viz-mask-bleed-left', 'legacy-viz-mask-bleed-right']);
+    expect(ids('compat', 'S2')).toEqual(['effects-hole', 'reset-underline-raster', 'D11-screen-corners', 'legacy-viz-mask-bleed-left', 'legacy-viz-mask-bleed-right', 'legacy-track-smoothing']);
+    expect(ids('compat', 'S2b')).toEqual(['effects-hole', 'reset-underline-raster', 'D11-screen-corners', 'legacy-viz-mask-bleed-left', 'legacy-viz-mask-bleed-right', 'legacy-track-smoothing']);
+    expect(ids('compat', 'S4')).toEqual(['effects-hole', 'D11-screen-corners', 'legacy-viz-mask-bleed-left', 'legacy-viz-mask-bleed-right']);
+    expect(ids('faithful', 'S2')).not.toContain('reset-underline-raster'); // D20-reset-y holds the pixel there
+    expect(ids('faithful', 'S1')).toEqual(['effects-hole', 'U-23-showBackground', 'U-10-slider-travel', 'D11-screen-corners', 'button-transparency', 'legacy-viz-mask-bleed-left', 'legacy-viz-mask-bleed-right']);
+    expect(ids('faithful', 'S1')).not.toContain('legacy-track-smoothing');
     expect(ids('faithful', 'S2')).toContain('D20-reset-y');
     expect(ids('faithful', 'S2b')).toContain('D20-reset-y');
     expect(ids('faithful', 'S2')).not.toContain('D21-preset-title');
@@ -111,7 +123,7 @@ describe('the committed allow-list (E 9)', () => {
 
   it('treats a state id from the command line as plain data: __proto__ and constructor select only the "all" entries', () => {
     for (const state of ['__proto__', 'constructor', 'toString']) {
-      expect(activeEntries(list, { config: 'faithful', state }).map((e) => e.id), state).toEqual(['effects-hole', 'U-23-showBackground', 'U-10-slider-travel', 'D11-screen-corners', 'button-transparency']);
+      expect(activeEntries(list, { config: 'faithful', state }).map((e) => e.id), state).toEqual(['effects-hole', 'U-23-showBackground', 'U-10-slider-travel', 'D11-screen-corners', 'button-transparency', 'legacy-viz-mask-bleed-left', 'legacy-viz-mask-bleed-right']);
     }
     expect(() => activeEntries(list, { config: '__proto__', state: 'S1' })).toThrow(AllowlistError);
   });
@@ -218,8 +230,8 @@ describe('validation', () => {
 });
 
 describe('the check command tables (cmd-check, cmd-diff)', () => {
-  it('has the engine-side states of the W2.7 card, S2b being the skin-driven S2', () => {
-    expect([...ENGINE_STATES.keys()]).toEqual(['S1', 'S2', 'S2b', 'S4']);
+  it('has the engine-side states, S2b being the skin-driven S2 (widened by W5.1; full table in check-states.test.js)', () => {
+    expect([...ENGINE_STATES.keys()].slice(0, 6)).toEqual(['S1', 'S2', 'S2b', 'S3', 'S3b', 'S4']);
     expect(ENGINE_STATES.get('S2b')).toMatchObject({ legacy: 'S2', steps: [{ call: 'ToggleEqView' }], media: 'stoppedEmpty' });
     for (const id of ['S1', 'S2', 'S4']) {
       // the same real clicks as the legacy: the steps come from states.mjs, not from a copy
@@ -231,9 +243,9 @@ describe('the check command tables (cmd-check, cmd-diff)', () => {
   });
 
   it('parses --state and --config, and treats unknown names as plain strings, not members', () => {
-    expect(parseEngineStateIds(undefined)).toEqual(['S1', 'S2', 'S2b', 'S4']);
+    expect(parseEngineStateIds(undefined)).toEqual([...ENGINE_STATES.keys()]);
     expect(parseEngineStateIds('S4, S2b')).toEqual(['S2b', 'S4']);
-    for (const bad of ['S3', 'S5', 'constructor', '__proto__', 'toString', 'S1,nope']) expect(() => parseEngineStateIds(bad), bad).toThrow(/unknown engine state/);
+    for (const bad of ['S9', 'constructor', '__proto__', 'toString', 'S1,nope']) expect(() => parseEngineStateIds(bad), bad).toThrow(/unknown engine state/);
     expect(() => parseEngineStateIds(',')).toThrow(/--state is empty/);
     expect(parseConfigList(undefined)).toEqual(['compat', 'faithful']);
     expect(parseConfigList('all')).toEqual(['compat', 'faithful']);

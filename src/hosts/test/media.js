@@ -58,6 +58,13 @@ const num = (v) => {
 };
 /** @param {string | number | undefined} v */
 const str = (v) => (v === undefined ? '' : String(v));
+/**
+ * parity D31: the host binding quantises volume to an integer in 0..100 with the legacy's
+ * `Math.round`, so `setvol` never gets a fraction. `Math.max(0, -0)` is +0 (the spec ranks +0 above
+ * -0), so a write like -0.4 cannot publish -0.
+ * @param {number} v
+ */
+const wholeVolume = (v) => Math.min(100, Math.max(0, Math.round(v)));
 
 /**
  * One `playlistinfo` record, as media-presets.js writes it, to a SongInfo.
@@ -291,7 +298,7 @@ export function createFakeMedia(presetName, opts = {}) {
     }),
     setVolume: (v) => command('setVolume', [v], () => {
       if (state.volume < 0 || !Number.isFinite(v)) return null;  // no mixer: MPD refuses setvol
-      return { volume: Math.min(100, Math.max(0, Math.round(v))) };
+      return { volume: wholeVolume(v) };                     // rounding onto the held value is silent (commit)
     }),
     setMode: (mode, on) => command('setMode', [mode, on], () => {
       if (mode !== 'loop' && mode !== 'shuffle') throw new TypeError(`unknown mode "${String(mode)}"`);

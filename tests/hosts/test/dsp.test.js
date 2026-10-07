@@ -183,3 +183,90 @@ describe('fake DSP: equalizer', () => {
     expect([eq, bal]).toEqual([1, 1]);
   });
 });
+
+// Parity D31: the engine keeps slider values continuous and the host binding quantises, as the legacy
+// sliders handed main.js whole numbers (`Math.round`, half toward +Infinity).
+describe('fake DSP: whole-number gains and balance (parity D31)', () => {
+  it.each([
+    [2.4, 2], [2.6, 3], [2.5, 3], [-2.4, -2], [-2.6, -3], [-2.5, -2],   // Math.round: the half goes up
+    [7.999999999999993, 8], [6.000000000000007, 6],                     // the demo's drag arithmetic
+    [13.6, 14], [14.4, 14], [99.9, 14], [-13.6, -14], [-99.9, -14],
+  ])('setGain(%d) stores %d dB', (input, stored) => {
+    const dsp = createFakeDsp();
+    dsp.eq.setGain(4, input);
+    expect(dsp.eq.gains()[4]).toBe(stored);
+    expect(dsp.sent.eq.at(-1)?.[4]).toBe(stored);
+  });
+
+  it('never stores or sends -0', () => {
+    const dsp = createFakeDsp();
+    dsp.eq.setGain(1, 3);
+    dsp.eq.setGain(1, -0.3);                              // Math.round(-0.3) is -0
+    expect(Object.is(dsp.eq.gains()[1], 0)).toBe(true);
+    expect(Object.is(dsp.sent.eq.at(-1)?.[1], 0)).toBe(true);
+    dsp.eq.setGain(2, -0);                                // already 0: silent, and nothing to hold as -0
+    expect(dsp.sent.eq).toHaveLength(2);
+    expect(dsp.eq.gains().every((g) => !Object.is(g, -0))).toBe(true);
+  });
+
+  it('a gain that rounds onto the stored value sends nothing and notifies nobody (G2.F3)', () => {
+    const dsp = createFakeDsp();
+    dsp.eq.setGain(2, 3);
+    let changes = 0;
+    dsp.eq.onChange(() => changes++);
+    dsp.eq.setGain(2, 3.4);
+    dsp.eq.setGain(2, 2.6);
+    dsp.eq.setGain(5, 0.4);                               // a flat band stays flat
+    dsp.eq.setGain(5, -0.4);
+    expect(changes).toBe(0);
+    expect(dsp.sent.eq).toHaveLength(1);
+    dsp.eq.setGain(2, 3.6);                               // 4: a change
+    expect([changes, dsp.sent.eq.length, dsp.eq.gains()[2]]).toEqual([1, 2, 4]);
+  });
+
+  it('a drag in fractions reaches the audio path as whole dB, one send per step', () => {
+    const dsp = createFakeDsp();
+    for (const db of [0.2, 0.9, 1.1, 1.6, 2.4, 2.6]) dsp.eq.setGain(0, db);
+    expect(dsp.sent.eq.map((g) => g[0])).toEqual([1, 2, 3]);   // 0.2 rounds onto the flat 0: silent
+  });
+
+  it.each([
+    [40.4, 40], [40.5, 41], [-40.4, -40], [-40.5, -40], [-40.6, -41],
+    [5.4, 0], [5.5, 6], [-5.4, 0], [-5.5, 0], [-5.6, -6],              // the integer comes first, then the detent
+    [99.6, 100], [-99.6, -100], [250.4, 100], [-250.4, -100],
+  ])('balance.set(%d) stores %d', (input, stored) => {
+    const dsp = createFakeDsp();
+    dsp.balance.set(input);
+    expect(dsp.balance.get()).toBe(stored);
+  });
+
+  it('never stores or sends a -0 balance', () => {
+    const dsp = createFakeDsp();
+    dsp.balance.set(40);
+    dsp.balance.set(-0.4);
+    expect(Object.is(dsp.balance.get(), 0)).toBe(true);
+    expect(dsp.sent.balance.every((b) => !Object.is(b, -0))).toBe(true);
+    expect(dsp.sent.balance).toEqual([40, 0]);
+  });
+
+  it('a balance that rounds onto the stored value sends nothing and notifies nobody', () => {
+    const dsp = createFakeDsp();
+    dsp.balance.set(40);
+    let changes = 0;
+    dsp.balance.onChange(() => changes++);
+    dsp.balance.set(40.4);
+    dsp.balance.set(39.6);
+    expect(changes).toBe(0);
+    expect(dsp.sent.balance).toEqual([40]);
+    dsp.balance.set(40.6);
+    expect([changes, dsp.balance.get()]).toEqual([1, 41]);
+  });
+
+  it('seeded starting gains and balance are quantised the same way', () => {
+    const dsp = createFakeDsp({ gains: [2.6, -0.2, -2.5, 99.4], balance: 40.6 });
+    expect(dsp.eq.gains()).toEqual([3, 0, -2, 14, 0, 0, 0, 0, 0, 0]);
+    expect(Object.is(dsp.eq.gains()[1], 0)).toBe(true);
+    expect(dsp.balance.get()).toBe(41);
+    expect(createFakeDsp({ balance: 5.4 }).balance.get()).toBe(0);
+  });
+});

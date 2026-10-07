@@ -31,7 +31,7 @@ const committed = () => JSON.parse(readFileSync(new URL(`${HEADSPACE}.json`, DIR
  */
 const HEADSPACE_ATTRS = [
   { ref: 'seek', name: 'x-foregroundMode', value: 'playhead' },
-  { ref: 'pl', name: 'backgroundColor', value: '#285F03' },
+  { ref: 'pl', name: 'backgroundColor', value: 'none' },
   { ref: 'pl', name: 'foregroundColor', value: '#FFFFFF' },
   { ref: 'pl', name: 'itemPlayingColor', value: '#A9FF2B' },
   { ref: 'pl', name: 'itemSelectedBackgroundColor', value: '#1C4702' },
@@ -361,7 +361,7 @@ describe('sidecarAttrs', () => {
 
   /** The PLAYLIST colours, as sidecarAttrs lists them for `pl`. */
   const PLAYLIST = [
-    { name: 'backgroundColor', value: '#285F03' },
+    { name: 'backgroundColor', value: 'none' },
     { name: 'foregroundColor', value: '#FFFFFF' },
     { name: 'itemPlayingColor', value: '#A9FF2B' },
     { name: 'itemSelectedBackgroundColor', value: '#1C4702' },
@@ -386,7 +386,7 @@ describe('sidecarAttrs', () => {
   it('the PLAYLIST colours are the ones the oracle paints (playlist.css), and nothing else of the playlist', () => {
     const colours = new Map(PLAYLIST.map((e) => [e.name, e.value.toLowerCase()]));
     expect(colours).toEqual(new Map([
-      ['backgroundColor', '#285f03'],             // .wh-pl background fallback, style.css --drawer
+      ['backgroundColor', 'none'],                // G5: the legacy #plList has no background, so the drawer art shows through
       ['foregroundColor', '#ffffff'],             // #plList { color: #fff }
       ['itemPlayingColor', '#a9ff2b'],            // .row.now, --row-now
       ['itemSelectedBackgroundColor', '#1c4702'], // .row.sel, --row-sel
@@ -579,12 +579,12 @@ describeHeadspace('the Headspace sidecar against the built model (G3: every ref 
         const changed = el.set(name, value, 'sidecar');
         // A write the element model refuses, or coerces to nothing, leaves the old value and reports false;
         // the only write allowed to be a no-op is a restatement of what the skin already says.
-        const restated = ref === 'pl' && (name === 'backgroundColor' || name === 'foregroundColor');
+        const restated = ref === 'pl' && name === 'foregroundColor';
         expect(changed || restated, `${ref}.${name}`).toBe(true);
       }
     }
     const pl = /** @type {NonNullable<ReturnType<typeof view.byId>>} */ (view.byId('pl'));
-    expect(pl.get('backgroundColor')).toBe(0x285f03);
+    expect(pl.get('backgroundColor')).toBe('none');
     expect(pl.get('foregroundColor')).toBe(0xffffff);
     expect(pl.get('itemPlayingColor')).toBe(0xa9ff2b);
     expect(pl.get('itemSelectedBackgroundColor')).toBe(0x1c4702);

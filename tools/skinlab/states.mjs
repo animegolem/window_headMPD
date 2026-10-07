@@ -137,6 +137,25 @@ export const STATES = new Map(
 
 export const DEFAULT_STATE_IDS = Object.freeze([...STATES.keys()]);
 
+/** Every S5.<point>.hover and .down id, in table order. */
+export const S5_STATE_IDS = Object.freeze([...STATES.keys()].filter((id) => id.startsWith('S5.')));
+
+/**
+ * Names that stand for several states on a command line: `--state S5` is the fourteen S5 hover and
+ * press states (E D9 lists them as one row). A Map, because the keys come from the command line.
+ * @type {ReadonlyMap<string, readonly string[]>}
+ */
+export const STATE_GROUPS = new Map([['S5', S5_STATE_IDS]]);
+
+/**
+ * Replace each group name in `ids` with its members, keeping everything else (known or not) as is.
+ * @param {readonly string[]} ids
+ * @returns {string[]}
+ */
+export function expandStateGroups(ids) {
+  return ids.flatMap((id) => STATE_GROUPS.get(id) ?? [id]);
+}
+
 /**
  * `parity 4.1`'s offline emulation of updateMask, for comparison only (open question 9: the live
  * oracle wins, and G0 records the live numbers). States without an entry have no reference.

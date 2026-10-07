@@ -189,6 +189,31 @@ function cropClaim(c, x, y, w, h) {
   return x1 > x0 && y1 > y0 ? { ...c, x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
 }
 
+/**
+ * Whether a keyed background's clip plane keeps no pixel at all: every one of its width x height bits is
+ * 0. `render/dom/container.js` skips the mask of such a VIEW; this is its `anyKept`, answered once per
+ * decoded image because planes are the image service's and never change.
+ * @type {WeakMap<KeyedPlanes, boolean>}
+ */
+const KEEPS_NOTHING = new WeakMap();
+
+/** @param {KeyedPlanes} planes */
+function keepsNothing(planes) {
+  const clip = planes.clip;
+  if (!clip) return false;
+  let none = KEEPS_NOTHING.get(planes);
+  if (none === undefined) {
+    const n = planes.width * planes.height;
+    const full = n >> 3;
+    none = true;
+    for (let i = 0; i < full && none; i++) if (clip[i] !== 0) none = false;
+    const rest = n & 7;
+    if (none && rest !== 0 && (clip[full] & ((1 << rest) - 1)) !== 0) none = false;
+    KEEPS_NOTHING.set(planes, none);
+  }
+  return none;
+}
+
 /** @param {ElementModel} el @returns {{ w: number, h: number }} */
 const boxSize = (el) => ({ w: Math.max(0, num(el.get('width'))), h: Math.max(0, num(el.get('height'))) });
 
@@ -197,7 +222,13 @@ const boxSize = (el) => ({ w: Math.max(0, num(el.get('width'))), h: Math.max(0, 
  * own top-left in view px. The VIEW's box is the frame and always clips; a SUBVIEW clips to its box
  * only with a non-zero size (a size-less grouping SUBVIEW must not clip, risk R10) and `subviewClip`.
  * The clip mask is the keyed background's `clip` plane at native size, drawn once from the top-left
- * (the renderer's `mask-image` is `no-repeat`), so anything the mask image does not reach is hidden.
+ * (`mask-repeat: no-repeat`), so anything the mask image does not reach is hidden. A `backgroundTiled`
+ * container repeats its mask with its background (`mask-repeat: repeat`, from the container's corner,
+ * over its box) or everything past the first tile would be hidden (5F.5, 5F.9). A VIEW whose clip keeps
+ * no pixel is not masked at all: Gorillaz's tile is entirely the clipping colour under a head its
+ * children draw, and the renderer lets the children show (5F.5, ENGINE D2 "SUBVIEW clippingColor");
+ * a SUBVIEW over the same tile stays masked (parity D26). All of this matches `render/dom/container.js`,
+ * which the frame shape and the picker must agree with pixel for pixel.
  * @param {Scene} scene @param {ElementModel} el @param {number} x @param {number} y
  * @returns {ContainerInfo}
  */
@@ -212,16 +243,17 @@ export function containerInfo(scene, el, x, y) {
   const ref = str(el.get('backgroundimage')).trim();
   /** @type {KeyedPlanes | null} */
   let source = null;
+  // The background repeats over the box, and so does its mask. A container with no area cannot tile.
+  const tiled = el.get('backgroundtiled') === true && sized;
   if (ref) {
     const planes = scene.images.get(ref, keySpecFor(el, 'background', scene.opts));
     if (planes) {
-      const tiled = el.get('backgroundtiled') === true && sized;
       const c = planesClaim(planes, x, y, tiled ? w : planes.width, tiled ? h : planes.height, tiled);
       if (c) claims.push(c);
       source = planes;
     }
   } else {
-    // No background, but a clippingImage still names the region (U-7: 37 corpus SUBVIEWs use one).
+    // No background, but a clippingImage still names the region (U-7: 32 SUBVIEW tags in the 342 archives, 19 in the 195 distinct skins).
     const clip = clippingOf(el);
     if (clip.clipImage !== undefined && clip.clipping !== null) {
       source = scene.images.get(clip.clipImage, { clipping: clip.clipping, hitKeyed: false });
@@ -231,13 +263,23 @@ export function containerInfo(scene, el, x, y) {
   /** @type {ContainerInfo['clipAt']} */
   let clipAt = null;
   const mask = source?.clip;
-  if (source && mask) {
+  if (source && mask && !(isView && keepsNothing(source))) {
     const mw = source.width;
     const mh = source.height;
+    // Only a mask that came with a background image tiles: the clippingImage-only branch above has no tile.
+    const repeats = tiled && ref !== '' && mw > 0 && mh > 0;
     clipAt = (vx, vy) => {
-      const lx = vx - x;
-      const ly = vy - y;
-      if (lx < 0 || ly < 0 || lx >= mw || ly >= mh) return true;
+      let lx = vx - x;
+      let ly = vy - y;
+      if (lx < 0 || ly < 0) return true;
+      if (repeats) {
+        // The mask covers the box and nothing beyond it, which matters when the box does not clip.
+        if (lx >= w || ly >= h) return true;
+        lx %= mw;
+        ly %= mh;
+      } else if (lx >= mw || ly >= mh) {
+        return true;
+      }
       return bit(mask, ly * mw + lx) === 0;
     };
   }

@@ -407,6 +407,8 @@ export interface ViewRuntime extends HostedView {
   readonly viewId: string;
   readonly inspector: SkinInspector;
   readonly realmHealth: Realm['health'];
+  /** The diagnostics of every view the window has shown, retired views first (5F.6, W5.4F). */
+  diagnostics(): Diagnostic[];
 }
 export interface SkinInspector {
   find(ref: string): { id: string; kind: ElementKind } | null;      // id or Unnamed_<type>_<n>

@@ -57,7 +57,7 @@ describe('the Headspace sidecar and the playlist widget', () => {
     const t = await mount();
     await applySidecar(t, compat);
     expect(t.vars()).toEqual({
-      '--wh-pl-bg': '#285f03',       // panel
+      '--wh-pl-bg': 'transparent',   // G5: no panel fill, the drawer art shows through as in the oracle
       '--wh-pl-fg': '#ffffff',       // text
       '--wh-pl-now': '#a9ff2b',      // playing row
       '--wh-pl-sel': '#ffffff',      // selected text: the default highlighttext, as the oracle's .row.sel

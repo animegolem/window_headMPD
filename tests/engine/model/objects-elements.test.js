@@ -450,7 +450,7 @@ describe('equalizerSettings (eq)', () => {
     t.write('eq.gainLevel3', 'loud');
     expect(t.read('eq.gainLevel3')).toBe(5);
     t.write('eq.gainLevel3', '7.5');
-    expect(t.read('eq.gainLevel3')).toBe(7.5);
+    expect(t.read('eq.gainLevel3')).toBe(8);                  // the host quantises to whole dB (parity D31, 5F.4)
   });
 
   it('there are exactly ten bands, 1 to 10', () => {

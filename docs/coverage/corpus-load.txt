@@ -1,0 +1,90 @@
+# corpus-load: numbers from the corpus load run (WAVES W5.4, ENGINE D6.7 and D10.9 criterion 6).
+# Names of archives and counts only: no pixels, no handler text. Each stage rewrites its own section.
+#   node stage      npm run corpus -- load   (or npm run coverage)
+#   chromium stage  npm run skinlab -- corpus
+
+== node stage ==
+archives: 342; distinct SHA-256: 195 (the survey counts 195)
+scenario: engine.load and attach on the test host (media preset stoppedQueue12, FAITHFUL budgets), then on the manual clock
+  60 x 1000 ms of play, pause 3000 ms, seek to 30 s, resume with a shuffle toggle and volume 30, next, stop, then a moveTo probe
+
+loaded and attached: 195/195
+host exceptions thrown out of load, attach, the run or dispose: 0
+runtime-error diagnostics (the runtime's catch for a host bug): 0 in 0 skins
+process-level uncaughtException or unhandledRejection: 0
+fault unloads (host.actions.fault, the shell's fault panel): 0 in 0 skins
+realms that unloaded (health.unloaded, read before dispose): 0 skins
+
+realm soft faults: 7923 in 64 skins (occurrences, the realm's own count; the ledger counts each reason once per site, so its soft-fault rows add up to far fewer)
+realm hard faults: 1 in 1 skins (reported, not blocking, except for R0 to R2)
+  Crystalball.wmz (b603be0479de): handler stack
+ladder rungs (R0 is the owner's Headspace.wmz, outside skins/):
+  R0 Headspace.wmz (76a8662f4698): hard 0, soft 0, unloaded false, ledger entries 0, load 7.8 ms, attach 18.2 ms
+  R1 Miniplayer.wmz (009aaf72fc4d): hard 0, soft 0, unloaded false, ledger entries 0, load 1.6 ms, attach 8.1 ms
+  R2 aoe.wmz (35bebc47680d): hard 0, soft 0, unloaded false, ledger entries 0, load 3.5 ms, attach 12.4 ms
+
+views never quiet within 120 frames after the scripted run (a tween that restarts itself): 2
+  Navigator.wmz (3fd10ce48a4d): two subviews pulse back and forth for ever: the end of each move starts the next one (checked 2026-10-07)
+  theskinsfactory__Lollapalooza 2003.wmz (a30ab1a76515): the main view's 500 ms timer starts the next 8 s fade of a four-layer background colour cycle, the end of each fade advances the cycle, and it wraps without end (checked 2026-10-07: the layers fade in turn, one about every 8 s). The skin starts on a splash view that hands over to this main view; before 5F.6 the window never switched, so the main view never ran and the cycle was not seen.
+view switches (5F.6: a script's currentViewID write, or openView from a view with no area, hands the one window to another view): 48 in 34 skins
+  hand-overs that did not happen (the 4-a-second cap, or the next view failed to start): 0 in 0 skins
+views shown with no area after the scripted run (nothing ever sized the view the window shows, or a splash collapsed and handed over to nothing): 0
+canvas-clamp hits (an element box over 4096 per axis or 16777216 px; expected 0): 0 in 0 skins
+size-less subviews after layout (they do not clip, risk R10): 89 of 2022 subviews, in 48 skins, at most 8 in one
+moveTo probe: 574 of 579 driven elements landed on the target
+policy denials seen by the host (launchURL, view.close outside a gesture, ...): 0
+
+load times (engine.load, ms): median 8.0, p95 20.6, max 28.2
+attach times (ms): median 24.6, p95 87.4, max 151.9
+slowest five by load + attach: Scooby-Doo_2.wmz 163 ms; Combat_Flight_Simulator_3.wmz 115 ms; US Navy.wmz 114 ms; XBOX.wmz 111 ms; Official_Xbox_XP.wmz 110 ms
+stage wall time: 13.7 s
+
+diagnostic codes (skins that raised each):
+  unknown-attribute: 180
+  duplicate-attribute: 67
+  realm-soft-fault: 66
+  invalid-value: 54
+  view-switch: 34
+  duplicate-id: 27
+  missing-whitespace: 22
+  layout-expr-fault: 20
+  view-no-size: 19
+  end-tag-case: 12
+  misspelled-prefix: 9
+  duplicate-attribute-case: 8
+  view-size-from-children: 8
+  image-missing: 7
+  unknown-tag: 7
+  script-rewrite: 6
+  invalid-binding-path: 3
+  unresolved-res: 3
+  zip-local-header-salvaged: 3
+  realm-id-shadowed: 2
+  zip-junk: 2
+  handler-syntax: 1
+  invalid-availability-name: 1
+  junk-after-root: 1
+  layout-expr-value: 1
+  missing-script: 1
+  realm-hard-fault: 1
+  view-visible-ignored: 1
+== end node stage ==
+
+== chromium stage ==
+browser: Chromium 153.0.8010.12 (Playwright 1.63.0, revision 1243), config faithful, DPR 1, media preset stoppedQueue12
+archives: 342; distinct SHA-256: 195 (the survey counts 195)
+
+mounted: 195/195
+renderer crashes: 0; page hangs: 0; uncaught page exceptions: 0 skins; failed requests: 0 skins
+console errors logged by the page: 0
+first frame non-empty (a pixel with alpha > 0): 195/195
+window mask non-empty: 195/195
+views still busy after 24 x 500 ms of extra manual clock past mount (a tween that restarts itself): 2
+  Navigator.wmz (3fd10ce48a4d): two subviews pulse back and forth for ever: the end of each move starts the next one (checked 2026-10-07)
+  theskinsfactory__Lollapalooza 2003.wmz (a30ab1a76515): the main view's 500 ms timer starts the next 8 s fade of a four-layer background colour cycle, the end of each fade advances the cycle, and it wraps without end (checked 2026-10-07: the layers fade in turn, one about every 8 s). The skin starts on a splash view that hands over to this main view; before 5F.6 the window never switched, so the main view never ran and the cycle was not seen.
+canvases per skin: median 45, max 138; largest canvas 1000000 px; canvases over 16777216 px (expected 0): 0
+mount times (ms, page load excluded): median 163, p95 1831, max 6081
+R0 Headspace.wmz (76a8662f4698): mounted, first frame 89222 painted px of 299440, mask 89487 bits, 122 ms
+stage wall time: 307.8 s
+failing skins: 0
+== end chromium stage ==

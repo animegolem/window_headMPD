@@ -346,6 +346,29 @@ describe('commands: the call log and idempotence', () => {
     expect(media.calls.at(-1)).toEqual({ method: 'setVolume', args: [40], changed: false });
   });
 
+  it('setVolume quantises to an integer (parity D31): the half goes up, -0 is never published', async () => {
+    const media = createFakeMedia('stoppedEmpty');
+    for (const [input, stored] of [[33.4, 33], [33.5, 34], [99.6, 100], [20.5, 21], [0.4, 0], [-0.4, 0], [-0.5, 0], [-0.6, 0]]) {
+      await media.setVolume(input);
+      expect(media.snapshot().volume, `setVolume(${input})`).toBe(stored);
+    }
+    await media.setVolume(40);
+    await media.setVolume(-0.4);
+    expect(Object.is(media.snapshot().volume, 0)).toBe(true);
+  });
+
+  it('a setVolume that rounds onto the held volume changes nothing and notifies nobody (G2.F3)', async () => {
+    const media = createFakeMedia('stoppedEmpty');                   // volume 50
+    const heard = listen(media);
+    await media.setVolume(50.4);
+    await media.setVolume(49.6);
+    expect(heard).toEqual([]);
+    expect(media.calls.map((c) => c.changed)).toEqual([false, false]);
+    await media.setVolume(50.6);
+    expect(heard).toEqual([['volume']]);
+    expect(media.snapshot().volume).toBe(51);
+  });
+
   it('setMode maps loop to repeat and shuffle to random, and rejects other modes', async () => {
     const media = createFakeMedia('stoppedEmpty');
     const heard = listen(media);

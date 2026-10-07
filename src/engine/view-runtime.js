@@ -13,7 +13,7 @@
 //   sidecar        `attrs` in both configurations, `compat.attrs` under `oracle-compat` only
 //   bindings       install and settle `wmpprop:`/`wmpenabled:`/`wmpdisabled:`
 //   decode         the images the visible elements show, plus their state images
-//   render         the window sized to the VIEW (D7.4), the layer tree mounted
+//   render         the window sized to the VIEW (D7.4; a VIEW with no area leaves it as it is), the layer tree mounted
 //   shape          the first window shape
 //   onload         the VIEW's `onload`
 //   queue drain    everything queued since the literal pass, FIFO: `_onchange` from the layout pass,
@@ -39,7 +39,19 @@
 // slot's hit rects changed, the shape is rasterised and sent only if its bits differ from the last
 // shape sent. The shape is always the size of the frame the window was given at attach (D7.3: a
 // script write of `view.width` updates the model and goes to `requestSize`, which phase 1 refuses;
-// the frame and its mask keep their size).
+// the frame and its mask keep their size). Inside that frame it covers only the VIEW's own box, which
+// is what the renderer and the input plane show after such a write: the rest of the frame is
+// click-through, and a view that shrank to nothing falls back to the full frame (fewer than 64 bits).
+//
+// Hand-over (5F.6). A script op on the theme object that hands the main window to another view
+// (theme.js `handOverTarget`: a `currentViewID` write, or `openView` from a view with no area) is
+// noted at the dispatcher and passed to `AttachOptions.handOver` when the dispatch that made it has
+// run and drained, never inside it; the last one of a dispatch wins, a `currentViewID` write over an
+// `openView`. index.js makes the switch.
+//
+// Soft faults (D6.7). Each soft fault the realm reports (once per site and reason) is recorded in the
+// ledger as `soft-fault` under its site: `handler <id>.<event>`, `expr <id>.<attr>`, `script <file>`,
+// `timer`, `call <name>`, `queue`, `jobs`; the runtime's own chain and drain caps (D1) likewise.
 //
 // Faults (D1). The realm counts them and unloads itself (one OOM or abort, or three hard faults in
 // 30 s). After every entry the runtime looks at `realm.health`; the first time it reads `unloaded`, it
@@ -62,11 +74,12 @@ import { createAnimator } from './anim/animator.js';
 import { createBindings } from './bind/bindings.js';
 import { keySpecFor } from './image/keyspec.js';
 import { createObjectGraph } from './model/objects/index.js';
+import { handOverTarget } from './model/objects/theme.js';
 import { classMembers, elementClassName } from './model/schema.js';
 import { createRealm, librarySource, REALM_CAPS } from './realm/realm.js';
 import { scriptLibrary } from './realm/wmploc.js';
 import { createRenderer } from './render/dom/index.js';
-import { rasterizeShapeWithDiagnostics } from './shape/mask.js';
+import { MIN_SHAPE_BITS, rasterizeShapeWithDiagnostics } from './shape/mask.js';
 import { decodeText } from './text/decode.js';
 import { PLAYER_EVENTS, attrSpecFor, attrSpecsOf } from './wms/attrs.js';
 import { createInspector } from './inspect.js';
@@ -113,6 +126,13 @@ import { createInspector } from './inspect.js';
  * @property {Ledger} ledger
  * @property {Sidecar | null} sidecar
  * @property {(d: Diagnostic) => void} report   session diagnostics, forwarded to `host.log.diag`
+ */
+
+/**
+ * How index.js attaches a view.
+ * @typedef {Object} AttachOptions
+ * @property {(to: ViewModel, api: string) => void} [handOver] a script asked to hand the window to `to`
+ *   (`api` is the member it used); called once the dispatch that asked has run and drained
  */
 
 /**
@@ -224,6 +244,45 @@ function shown(el) {
   return true;
 }
 
+/** Set bits per byte value. */
+const ONES = Uint8Array.from({ length: 256 }, (_, v) => {
+  let n = 0;
+  for (let b = v; b; b >>= 1) n += b & 1;
+  return n;
+});
+
+/** @param {Uint8Array} bits @returns {number} set bits (no stray bits lie past the last pixel) */
+const popcount = (bits) => {
+  let total = 0;
+  for (let i = 0; i < bits.length; i++) total += ONES[bits[i]];
+  return total;
+};
+
+/**
+ * A `w x h` shape laid into the top-left of a larger frame, the rest clear.
+ * @param {Uint8Array} bits @param {number} w @param {number} h @param {number} fw @param {number} fh
+ */
+function embedBits(bits, w, h, fw, fh) {
+  const out = new Uint8Array((fw * fh + 7) >> 3);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (!((bits[i >> 3] >> (i & 7)) & 1)) continue;
+      const j = y * fw + x;
+      out[j >> 3] |= 1 << (j & 7);
+    }
+  }
+  return out;
+}
+
+/** Every one of `n` pixels set, and no stray bits past the last. @param {number} n */
+function fullBits(n) {
+  const bits = new Uint8Array((n + 7) >> 3);
+  bits.fill(0xff);
+  if (n & 7) bits[bits.length - 1] = (1 << (n & 7)) - 1;
+  return bits;
+}
+
 /** Two bit shapes with the same size and bits. @param {MaskShape | null} a @param {MaskShape} b */
 function sameShape(a, b) {
   if (!a || a.kind !== 'bits' || b.kind !== 'bits') return false;
@@ -239,14 +298,16 @@ function sameShape(a, b) {
  * (the realm cannot start, a host call throws) tears down what was built and rejects.
  * @param {Session} s
  * @param {ViewModel} view
+ * @param {AttachOptions} [o]
  * @returns {Promise<AttachedView>}
  */
-export async function attachView(s, view) {
+export async function attachView(s, view, o = {}) {
   const { host, opts, vfs, theme, ledger, sidecar } = s;
   const win = host.window;
   const viewEl = view.view;
   const viewId = viewEl.id;
   const headless = !win || !win.root;
+  const viewKey = `${vfs.sha.slice(0, 12)}/${viewId}`;
 
   // ---- diagnostics and logs -------------------------------------------------------------------------
 
@@ -310,6 +371,54 @@ export async function attachView(s, view) {
   /** @type {Set<() => void>} */ const dispatchListeners = new Set();
   /** @type {{ over: PointerTarget | null, pressed: PointerTarget | null }} */
   const pointer = { over: null, pressed: null };
+
+  // ---- hand-over (5F.6) -------------------------------------------------------------------------------
+
+  /** Where requests go; cleared once the view is going away, so its `onclose` cannot ask. */
+  let handOverSink = typeof o.handOver === 'function' ? o.handOver : null;
+  /** @type {{ to: ViewModel, api: string, explicit: boolean } | null} the request of the running dispatch */
+  let handOver = null;
+
+  /**
+   * A script op on the theme object, seen at the dispatcher: note it when it hands the window over.
+   * @param {string} member lowercased @param {unknown} id
+   */
+  function noteHandOver(member, id) {
+    if (!handOverSink || disposed || unloaded) return;
+    const to = handOverTarget(theme, view, member, id);
+    if (!to) return;
+    const explicit = member === 'currentviewid';
+    if (handOver && handOver.explicit && !explicit) return;   // the window's own view beats a window it opens
+    handOver = { to, api: explicit ? 'theme.currentViewID' : member === 'openview' ? 'theme.openView' : 'theme.openViewRelative', explicit };
+  }
+
+  /** Pass the request on once its dispatch has run and drained (never inside it, D1). */
+  function deliverHandOver() {
+    if (!handOver || entryDepth > 0 || draining) return;
+    const h = handOver;
+    handOver = null;
+    if (!handOverSink || disposed) return;
+    try { handOverSink(h.to, h.api); } catch (e) { runtimeError('handOver', e); }
+  }
+
+  // ---- soft faults in the ledger (D6.7) ---------------------------------------------------------------
+
+  /** A realm site with its element handle read as the element's id; a timer's number says nothing. @param {string} site */
+  function siteName(site) {
+    const m = /^(handler|expr) (\d+)\.(.*)$/s.exec(site);
+    if (m) return `${m[1]} ${view.byHandle(Number(m[2]))?.id ?? `#${m[2]}`}.${m[3]}`;
+    if (/^timer \d+$/.test(site)) return 'timer';
+    return site;
+  }
+
+  /** The realm's `realm-soft-fault` detail is `<viewKey> <site>: <reason>`. @param {string} detail */
+  function ledgerSoftFault(detail) {
+    const rest = detail.startsWith(`${viewKey} `) ? detail.slice(viewKey.length + 1) : detail;
+    const colon = rest.indexOf(': ');
+    const site = colon < 0 ? rest : rest.slice(0, colon);
+    const reason = colon < 0 ? '' : rest.slice(colon + 2);
+    try { ledger.record(siteName(site), 'soft-fault', reason); } catch (e) { runtimeError('ledger', e); }
+  }
 
   // ---- images: the session's service, with this view's decodes tracked --------------------------------
 
@@ -441,6 +550,7 @@ export async function attachView(s, view) {
         if (ran >= RUNTIME_CAPS.maxDrain || !(wallClock() - start <= budget)) {
           reportOnce({ code: 'runtime-drain-cap', severity: 'warn', elementId: viewId,
             detail: `queued dispatches ran over ${budget} ms or ${RUNTIME_CAPS.maxDrain} dispatches; the rest were dropped` }, 'drain-cap');
+          ledger.record('queue', 'soft-fault', `queued dispatches ran over ${budget} ms or ${RUNTIME_CAPS.maxDrain} dispatches`);
           pending.length = 0;
           view.takeQueuedEvents();
           break;
@@ -449,6 +559,7 @@ export async function attachView(s, view) {
         if (item.depth > RUNTIME_CAPS.maxChain) {
           reportOnce({ code: 'runtime-chain-cap', severity: 'warn', elementId: item.el.id,
             detail: `${item.event} is ${item.depth} dispatches deep; chains stop at ${RUNTIME_CAPS.maxChain}` }, `chain|${item.el.handle}|${item.event}`);
+          ledger.record(`handler ${item.el.id}.${item.event}`, 'soft-fault', `change chain deeper than ${RUNTIME_CAPS.maxChain}`);
           continue;
         }
         const site = item.el.handlers.get(item.event);
@@ -469,6 +580,7 @@ export async function attachView(s, view) {
     } finally {
       draining = false;
     }
+    deliverHandOver();
   }
 
   /**
@@ -500,6 +612,7 @@ export async function attachView(s, view) {
   function afterEntry() {
     checkHealth();
     if (!loading) drain();
+    deliverHandOver();                     // while loading nothing drains, and the request still goes
     if (loading || unloaded || disposed) return;
     for (const cb of [...dispatchListeners]) {
       try { cb(); } catch (e) { runtimeError('onDispatch', e); }
@@ -598,8 +711,15 @@ export async function attachView(s, view) {
   /** @type {HostDispatcher} */
   const dispatcher = {
     get: (h, key) => graph?.objectOf(h)?.get(key),
-    set: (h, key, v) => { graph?.objectOf(h)?.set(key, v, 'script'); },
-    call: (h, key, args) => graph?.objectOf(h)?.call(key, args, { gesture: realm?.inGesture ?? false }),
+    set: (h, key, v) => {
+      graph?.objectOf(h)?.set(key, v, 'script');
+      if (graph && h === graph.hostGlobals.theme) noteHandOver(key, v);
+    },
+    call: (h, key, args) => {
+      const out = graph?.objectOf(h)?.call(key, args, { gesture: realm?.inGesture ?? false });
+      if (graph && h === graph.hostGlobals.theme) noteHandOver(key, args[0]);
+      return out;
+    },
     timer(op, id, ms, repeat) {
       if (op === 'clear') {
         const t = realmTimers.get(id);
@@ -623,6 +743,7 @@ export async function attachView(s, view) {
     warn: (m, d) => warn(m, d),
     diag(d) {
       if (d && d.code === 'realm-hard-fault' && typeof d.detail === 'string') lastHardFault = clip(d.detail, 200);
+      if (d && d.code === 'realm-soft-fault' && typeof d.detail === 'string') ledgerSoftFault(d.detail);
       report(d);
     },
   };
@@ -741,11 +862,33 @@ export async function attachView(s, view) {
     }
   };
 
-  /** @returns {MaskShape} */
+  /**
+   * The frame's shape. After a script wrote the VIEW's width or height (D7.3: the window keeps its
+   * frame), the renderer and the input plane show only the VIEW's own box, so the shape is rasterised
+   * for that box and laid into the frame; past it the frame is click-through. The unreachable-skin
+   * fallback is the full frame, as for any shape.
+   * @returns {MaskShape}
+   */
   function computeShape() {
-    const { shape, diagnostics: found } = rasterizeShapeWithDiagnostics(view, images, slotRects, opts, { size: frameSize });
+    const { width: fw, height: fh } = frameSize;
+    const box = {
+      width: Math.min(fw, Math.max(0, Math.round(num(viewEl.get('width'))))),
+      height: Math.min(fh, Math.max(0, Math.round(num(viewEl.get('height'))))),
+    };
+    if (box.width === fw && box.height === fh) {
+      const { shape, diagnostics: found } = rasterizeShapeWithDiagnostics(view, images, slotRects, opts, { size: frameSize });
+      for (const d of found) reportOnce(d, `shape|${d.code}`);
+      return shape;
+    }
+    const { shape, diagnostics: found } = rasterizeShapeWithDiagnostics(view, images, slotRects, opts, { size: box, minBits: 0 });
     for (const d of found) reportOnce(d, `shape|${d.code}`);
-    return shape;
+    let bits = shape.kind === 'bits' ? embedBits(shape.bits, Math.min(shape.width, fw), Math.min(shape.height, fh), fw, fh) : new Uint8Array((fw * fh + 7) >> 3);
+    if (popcount(bits) < MIN_SHAPE_BITS) {
+      bits = fullBits(fw * fh);
+      reportOnce({ code: 'shape-empty', severity: 'warn', elementId: viewId,
+        detail: `the view paints fewer than ${MIN_SHAPE_BITS} pixels inside its ${box.width}x${box.height} box; the shape is the full ${fw}x${fh} frame so the skin stays reachable` }, 'shape|shape-empty');
+    }
+    return { kind: 'bits', width: fw, height: fh, bits };
   }
 
   /** Rasterise if something shape-relevant changed, and send only when the bits differ. */
@@ -919,6 +1062,7 @@ export async function attachView(s, view) {
   /** Undo whatever the sequence built, for a load that failed part-way. */
   function abandon() {
     disposed = true;
+    handOverSink = null;
     stopActivity();
     try { renderer?.dispose(); } catch { /* best effort */ }
     try { graph?.dispose(); } catch { /* best effort */ }
@@ -950,7 +1094,7 @@ export async function attachView(s, view) {
 
     step('prelude');
     realm = await createRealm({
-      viewKey: `${vfs.sha.slice(0, 12)}/${viewId}`,
+      viewKey,
       memoryLimitBytes: MEMORY_LIMIT_BYTES,
       maxStackBytes: MAX_STACK_BYTES,
       budgets: opts.budgets,
@@ -995,7 +1139,11 @@ export async function attachView(s, view) {
 
     step('render');
     frameSize = { width: Math.max(0, Math.round(num(viewEl.get('width')))), height: Math.max(0, Math.round(num(viewEl.get('height')))) };
-    if (win) await win.setInitialSize(frameSize.width, frameSize.height);
+    // A view with no area, first or switched to, leaves the window as it is: it has nothing to show, a
+    // host refuses a size of 0 (Tauri throws), and it hands over to the view that sizes the window (a
+    // splash, or a control view that only opens the others).
+    const sizeless = !(frameSize.width > 0 && frameSize.height > 0);
+    if (win && !sizeless) await win.setInitialSize(frameSize.width, frameSize.height);
     if (!headless) {
       const r = /** @type {any} */ (createRenderer(win.root, images, host.slots, win, opts, { clock: host.clock, log: { info, warn, diag: report } }));
       renderer = r;
@@ -1122,6 +1270,8 @@ export async function attachView(s, view) {
     },
     dispose() {
       if (disposed) return;
+      handOverSink = null;         // a view on its way out hands nothing over
+      handOver = null;
       // `onclose` runs while the view is still whole (Headspace saves its preset there).
       const onclose = viewEl.handlers.get('onclose');
       if (onclose && realm && !unloaded) {

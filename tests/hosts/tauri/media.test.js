@@ -405,6 +405,29 @@ describe('volume', () => {
     expect(r.calls).toEqual([['setvol', '34'], ['setvol', '100'], ['setvol', '0']]);
   });
 
+  it('quantises to an integer (parity D31): the half goes up, and a -0 is never sent', async () => {
+    const r = rig({ state: 'stop', volume: '50' });
+    for (const v of [33.4, 33.5, 99.6, 0.4, -0.4, -0.6]) {
+      r.media.setVolume(v);
+      await vi.advanceTimersByTimeAsync(40);
+    }
+    expect(r.calls).toEqual([['setvol', '33'], ['setvol', '34'], ['setvol', '100'], ['setvol', '0']]);
+  });
+
+  it('a volume that rounds onto the current or the pending one sends nothing', async () => {
+    const r = rig({ state: 'stop', volume: '50' });
+    r.media.setVolume(50.4);
+    await vi.advanceTimersByTimeAsync(40);
+    r.media.setVolume(49.6);
+    await vi.advanceTimersByTimeAsync(40);
+    expect(r.calls).toEqual([]);
+    r.media.setVolume(70.4);
+    await vi.advanceTimersByTimeAsync(40);
+    r.media.setVolume(69.6);                                            // setvol 70 is still in flight
+    await vi.advanceTimersByTimeAsync(40);
+    expect(r.calls).toEqual([['setvol', '70']]);
+  });
+
   it('sends nothing when the target is the current or the pending volume', async () => {
     const r = rig({ state: 'stop', volume: '50' });
     r.media.setVolume(50);

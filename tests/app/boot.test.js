@@ -321,6 +321,17 @@ async function launch(o = {}) {
   handles.push(shell);
   return { shell, host, stub, deps, menus, order, root, createHost };
 }
+/**
+ * Click the panel's Reload skin and wait for the load it starts. The click calls `reload()`, which holds
+ * the load it began, so `shell.reload()` joins that one instead of starting another. Waiting on it
+ * rather than on a number of timer ticks matters: the load hashes the archive with `crypto.subtle`, real
+ * work off the event loop that two ticks do not bound when the machine is busy.
+ * @param {{ shell: { reload(): Promise<void> | undefined }, root: HTMLElement }} t
+ */
+async function clickReload(t) {
+  /** @type {HTMLButtonElement} */ (t.root.querySelector('.wh-fault-reload')).click();
+  await t.shell.reload();
+}
 const marker = (/** @type {any} */ host) => host.prefs.peek('app').get(PENDING_KEY);
 const panelText = (/** @type {HTMLElement} */ root) => root.querySelector('.wh-fault-message')?.textContent ?? null;
 
@@ -488,9 +499,7 @@ describe('safe mode', () => {
 
   it('the panel\'s Reload skin is the explicit retry: it arms, loads and runs the 10 s clock', async () => {
     const t = await launch({ seed: { app: { [PENDING_KEY]: '1' } } });
-    /** @type {HTMLButtonElement} */ (t.root.querySelector('.wh-fault-reload')).click();
-    await flush();
-    await flush();
+    await clickReload(t);
     expect(t.stub.engine.load).toHaveBeenCalledOnce();
     expect(t.shell.panel.visible()).toBe(false);
     t.host.clock.advance(10_100);
@@ -600,21 +609,109 @@ describe('a skin that does not come up', () => {
   });
 });
 
+describe('a skin that hands the window over (5F.8)', () => {
+  /**
+   * A skin that starts on a splash (the view `skin.views()` calls main) and whose runtime shows the view
+   * the splash handed over to. `shown.id` is what the runtime's `viewId` answers; a test moves it to
+   * stand for a later hand-over.
+   * @param {Array<{ id: string, width: number, height: number, main: boolean }>} [views]
+   */
+  function handedOver(views = [
+    { id: 'splash', width: 120, height: 80, main: true },
+    { id: 'sMain', width: 760, height: 394, main: false },
+  ]) {
+    const stub = stubEngine({ views: () => views });
+    const shown = { id: 'sMain' };
+    Object.defineProperty(stub.view, 'viewId', { get: () => shown.id });
+    return { stub, shown };
+  }
+  /** The panel's left/top and the window shape's size after a fault. @param {Awaited<ReturnType<typeof launch>>} t */
+  function faultBox(t) {
+    t.shell.fault('This skin stopped: x');
+    const node = /** @type {HTMLElement} */ (t.root.querySelector('.wh-fault'));
+    const shape = /** @type {any} */ (t.host.window.lastShape());
+    return { left: node.style.left, top: node.style.top, width: shape.width, height: shape.height };
+  }
+
+  it('centres the fault panel on the view shown, not on the splash skin.views() calls main', async () => {
+    const { stub } = handedOver();
+    const t = await launch({ stub });
+    expect(stub.skin.attach).toHaveBeenCalledWith('splash');
+    // 760x394 with the 340x128 panel in the middle of it
+    expect(faultBox(t)).toEqual({ left: '210px', top: '133px', width: 760, height: 394 });
+  });
+
+  it('follows a later hand-over, and falls back to the main view for a view with no area', async () => {
+    const views = [
+      { id: 'splash', width: 120, height: 80, main: true },
+      { id: 'sMain', width: 760, height: 394, main: false },
+      { id: 'control', width: 0, height: 0, main: false },
+    ];
+    const { stub, shown } = handedOver(views);
+    const t = await launch({ stub });
+    shown.id = 'splash';
+    expect(faultBox(t)).toMatchObject({ width: 120, height: 80 });
+    shown.id = 'control';
+    expect(faultBox(t)).toMatchObject({ width: 120, height: 80 });          // no area: the main view's size
+    shown.id = 'sMain';
+    expect(faultBox(t)).toMatchObject({ width: 760, height: 394 });
+  });
+
+  it('takes view ids as plain strings: __proto__ and constructor, and one the skin does not have', async () => {
+    const { stub, shown } = handedOver([
+      { id: 'splash', width: 120, height: 80, main: true },
+      { id: '__proto__', width: 300, height: 200, main: false },
+      { id: 'constructor', width: 500, height: 250, main: false },
+    ]);
+    const t = await launch({ stub });
+    shown.id = '__proto__';
+    expect(faultBox(t)).toMatchObject({ width: 300, height: 200 });
+    shown.id = 'constructor';
+    expect(faultBox(t)).toMatchObject({ width: 500, height: 250 });
+    shown.id = 'toString';
+    expect(faultBox(t)).toMatchObject({ width: 120, height: 80 });
+  });
+
+  it('keeps the window key on the view the skin starts on: it is the same at every launch', async () => {
+    const { openVfs } = await import('../../src/engine/archive/vfs.js');
+    const { sha } = await openVfs(SKIN_BYTES, 'skin.wmz');
+    const { stub } = handedOver();
+    const t = await launch({ stub, hostOver: (h) => { h.window.setKey = (/** @type {string} */ k) => { h.window.key = k; }; } });
+    expect(t.host.window.key).toBe(`${sha}/splash`);
+  });
+});
+
 describe('reload', () => {
   it('tears the skin down and loads it again: the panel goes, the marker re-arms, the fan-out is released', async () => {
     const t = await launch();
     t.stub.seen.host.actions.fault('x');
     t.host.clock.advance(11_000);
     expect(marker(t.host)).toBeUndefined();
-    /** @type {HTMLButtonElement} */ (t.root.querySelector('.wh-fault-reload')).click();
-    await flush();
-    await flush();
+    await clickReload(t);
     expect(t.stub.view.dispose).toHaveBeenCalledOnce();
     expect(t.stub.skin.dispose).toHaveBeenCalledOnce();
     expect(t.deps.onTeardown).toHaveBeenCalledOnce();
     expect(t.stub.engine.load).toHaveBeenCalledTimes(2);
     expect(t.shell.panel.visible()).toBe(false);
     expect(marker(t.host)).toBe('1');
+  });
+
+  it('the panel\'s Reload skin settles however long the archive digest takes (the load is waited on, not timed)', async () => {
+    const t = await launch();
+    t.stub.seen.host.actions.fault('x');
+    const subtle = globalThis.crypto.subtle;
+    const real = subtle.digest.bind(subtle);
+    const slow = vi.spyOn(subtle, 'digest').mockImplementation(async (algorithm, data) => {
+      await new Promise((r) => setTimeout(r, 20));
+      return real(algorithm, data);
+    });
+    try {
+      await clickReload(t);
+    } finally {
+      slow.mockRestore();
+    }
+    expect(t.stub.engine.load).toHaveBeenCalledTimes(2);
+    expect(t.shell.panel.visible()).toBe(false);
   });
 
   it('Reload Skin in the window menu does the same, and calls made while loading share one load', async () => {

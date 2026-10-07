@@ -14,7 +14,9 @@
 //     and coerces literals to the attribute's type. An attribute the kind does not know is kept as
 //     inert text (G12), and a handler is registered as a handler site;
 //  3. a missing `width`/`height` comes from the header probe of the element's size-defining image
-//     (spec 5.1); `resizable` follows `titleBar`; a VIEW over 4,096 px clamps;
+//     (spec 5.1); a VIEW with neither a size nor an image takes the bounding box of its visible
+//     children once they are built (5F.5); `resizable` follows `titleBar`; a VIEW's own `visible`
+//     is ignored (it is the skin's frame, 5F.5); a VIEW over 4,096 px clamps;
 //  4. an element without an id gets `Unnamed_<kind>_<n>`, numbered per kind in source order across
 //     the whole THEME, so the id of a given element never depends on a sidecar. `<kind>` is the
 //     base kind (PAUSEBUTTON is a `button`, G23), which keeps the id inside `ElementKind`;
@@ -124,6 +126,7 @@ const INVALID = Symbol('invalid');
  * @property {number} count                     elements built so far, across the THEME
  * @property {Map<ElementKind, number>} unnamed per-kind counters for generated ids
  * @property {Set<string>} seen                 diagnostics already given once (`code|key`)
+ * @property {{ width: boolean, height: boolean } | null} unsized  the VIEW being built: the axes no markup gave a size
  */
 
 /**
@@ -297,11 +300,18 @@ function createElement(ctx, builder, parent, spec, mode) {
         a.values.set(axis, ctx.caps.maxViewAxis);
       }
     }
-    const sized = (/** @type {string} */ axis) => a.values.has(axis) || (a.sources.get(axis) !== undefined && a.sources.get(axis)?.kind !== 'literal');
-    if (!sized('width') || !sized('height')) {
-      ctx.report({ code: 'view-no-size', severity: 'info', line: spec.line, elementId: id,
-        detail: 'the view has no width or height and no background image to take one from' });
+    // The VIEW is the skin's frame: `visible="false"` on it has nothing to hide from (spec 5.1: the control
+    // "behind" it) and no way to show it again. gnome.wmz ships one and no script ever reaches the VIEW
+    // (no `view.visible` write in the 195 corpus skins), so WMP must show it. Dropping the value keeps
+    // the hit, shape and slot code, which walk up to the VIEW, in step with the renderer.
+    if (a.values.get('visible') === false) {
+      a.values.delete('visible');
+      ctx.report({ code: 'view-visible-ignored', severity: 'info', line: spec.line, elementId: id,
+        detail: 'visible="false" on a view is ignored: the view is the skin\'s own frame' });
     }
+    const sized = (/** @type {string} */ axis) => a.values.has(axis) || (a.sources.get(axis) !== undefined && a.sources.get(axis)?.kind !== 'literal');
+    // Whether the children can give the size is known only once they exist: `sizeFromChildren` decides.
+    ctx.unsized = { width: !sized('width'), height: !sized('height') };
   }
 
   if (parent?.kind === 'buttongroup' && kind === 'buttonelement') {
@@ -346,6 +356,87 @@ function gatherAttributes(ctx, node, defaults) {
   return attrs;
 }
 
+/** @param {unknown} v */
+const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
+/**
+ * The right and bottom edge of what an element shows, in its parent's pixels, or null when it shows
+ * nothing at build time: hidden by a literal `visible="false"`, or without an area. A scripted
+ * position or size reads as its default 0, as everywhere in the literal pass. A SUBVIEW with no size
+ * groups its children and does not clip (risk R10), so it covers what they cover.
+ * @param {ElementModel} el
+ * @returns {{ right: number, bottom: number } | null}
+ */
+function extentOf(el) {
+  if (el.get('visible') === false) return null;
+  const left = num(el.get('left'));
+  const top = num(el.get('top'));
+  const w = num(el.get('width'));
+  const h = num(el.get('height'));
+  if (w > 0 && h > 0) return { right: left + w, bottom: top + h };
+  if (el.kind !== 'subview') return null;
+  const inner = childExtent(el);
+  return inner ? { right: left + inner.right, bottom: top + inner.bottom } : null;
+}
+
+/**
+ * The bounding box of a container's visible children, from the container's own origin; only the
+ * part right of and below the origin counts, as the frame starts there.
+ * @param {ElementModel} container
+ * @returns {{ right: number, bottom: number } | null}
+ */
+function childExtent(container) {
+  let right = 0;
+  let bottom = 0;
+  for (const child of container.children) {
+    const e = extentOf(child);
+    if (!e) continue;
+    right = Math.max(right, e.right);
+    bottom = Math.max(bottom, e.bottom);
+  }
+  return right > 0 || bottom > 0 ? { right, bottom } : null;
+}
+
+/**
+ * A VIEW with no `width`/`height` and no background image to take them from (spec 5.1 and 6.2 leave
+ * this case open: "defaults to 0 or the width of the control's image") is the bounding box of its
+ * visible children, from its origin. The skins that do this show it: iconic.js sets
+ * `view.width = 288; view.height = 255`, which is exactly its visible `sBig` subview (base.gif), and
+ * Deadside's players and drawers lie inside the box. An axis the markup sized, even with a script
+ * expression, is left alone; one the children cannot size stays 0 and is reported.
+ * @param {Context} ctx @param {ViewBuilder} builder @param {number} line
+ */
+function sizeFromChildren(ctx, builder, line) {
+  const unsized = ctx.unsized;
+  ctx.unsized = null;
+  if (!unsized || (!unsized.width && !unsized.height)) return;
+  const view = builder.model.view;
+  const box = childExtent(view);
+  /** @type {string[]} */
+  const taken = [];
+  /** @type {string[]} */
+  const missing = [];
+  for (const axis of /** @type {const} */ (['width', 'height'])) {
+    if (!unsized[axis]) continue;
+    const edge = Math.ceil(box ? (axis === 'width' ? box.right : box.bottom) : 0);
+    if (!(edge > 0)) { missing.push(axis); continue; }
+    if (edge > ctx.caps.maxViewAxis) {
+      ctx.report({ code: 'cap-view-size', severity: 'warn', line, elementId: view.id,
+        detail: `${axis}=${edge} from the children is over the ${ctx.caps.maxViewAxis}-px limit and is clamped` });
+    }
+    builder.put(view, axis, Math.min(edge, ctx.caps.maxViewAxis));
+    taken.push(`${axis}=${view.get(axis)}`);
+  }
+  if (taken.length) {
+    ctx.report({ code: 'view-size-from-children', severity: 'info', line, elementId: view.id,
+      detail: `the view has no ${missing.length ? missing.join(' or ') : 'size'} of its own; ${taken.join(', ')} is the bounding box of its visible children` });
+  }
+  if (missing.length) {
+    ctx.report({ code: 'view-no-size', severity: 'info', line, elementId: view.id,
+      detail: `the view has no ${missing.join(' or ')} and no background image or visible child to take one from` });
+  }
+}
+
 /**
  * Build one VIEW and everything under it.
  * @param {Context} ctx @param {RawNode} viewNode @param {'context' | 'flat'} stacking
@@ -355,6 +446,7 @@ function buildView(ctx, viewNode, stacking) {
   const builder = createViewModel({ stacking, maxViewAxis: ctx.caps.maxViewAxis, report: ctx.report, nextHandle: ctx.nextHandle });
   /** @type {Array<{ node: RawNode, parent: ElementModel | null, depth: number }>} */
   const pending = [{ node: viewNode, parent: null, depth: 0 }];
+  ctx.unsized = null;
   while (pending.length) {
     const { node, parent, depth } = /** @type {{ node: RawNode, parent: ElementModel | null, depth: number }} */ (pending.pop());
     if (ctx.count >= ctx.caps.maxElements) {
@@ -384,6 +476,7 @@ function buildView(ctx, viewNode, stacking) {
 
     for (let i = node.children.length - 1; i >= 0; i--) pending.push({ node: node.children[i], parent: el, depth: depth + 1 });
   }
+  sizeFromChildren(ctx, builder, viewNode.line);
   return builder;
 }
 
@@ -461,7 +554,7 @@ export const buildTheme = (root, vfs, opts) => {
   /** @type {Context} */
   const ctx = {
     caps, report, probe: opts?.probe ?? (() => null), nextHandle: () => ++handleCounter,
-    count: 0, unnamed: new Map(), seen: new Set(),
+    count: 0, unnamed: new Map(), seen: new Set(), unsized: null,
   };
   const stacking = /** @type {StackingOption} */ (opts ?? {}).stacking === 'flat' ? 'flat' : 'context';
 
