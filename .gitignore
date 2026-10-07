@@ -12,3 +12,11 @@ src-tauri/icons/
 
 # Test skin corpus: other people's art, never committed.
 skins/
+# The corpus as a symlink (an engine worktree points it at the main checkout's skins/);
+# `skins/` above only matches a directory.
+/skins
+
+# skinlab writes goldens and run output under ~/Library/Caches/window_headmpd/; these catch a
+# stray local output directory so art can never be staged by `git add -A`.
+.skinlab/
+tests/**/__out__/

@@ -1,0 +1,356 @@
+{
+  "version": 1,
+  "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+  "entries": {
+    "220ce3e6db02f1e8d71813c14ad553ecc592b063dea5d8791f020694cbe6c854": {
+      "pngSha256": "077c07351237ee274354b8c1391203c347b9e452aa37f2b6e119396862f51836",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 1,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S1",
+        "target": "legacy"
+      }
+    },
+    "85221e2de36b840a085c8c2d9ca610e3ed850be7071ea14ee08ee9b0ee2a9fa1": {
+      "pngSha256": "4f13c73e6a73bb32d7825385fc8b05def300ceb6e1d2bb30a09f964646a096e5",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 2,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S1",
+        "target": "legacy"
+      }
+    },
+    "4f73b6f5e8c1cab6a3ec1fb6b1f318b520e6a4a864eac51a6485daf0712d9fe9": {
+      "pngSha256": "bcedeec175cc2fd619969673c9fd866c9189bef8792a4255be3730fafbb09854",
+      "maskSha256": "399cc7c083492f734e1699dc9776b0d257554f262ba4968626b7a32482b0cb2e",
+      "popcount": 122636,
+      "bbox": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 1,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S2",
+        "target": "legacy"
+      }
+    },
+    "d0f814723586283dbae9e8b8ad417ec8dc77ccdde8a431b1defd2d419e247ac2": {
+      "pngSha256": "8a0b33a72a8ecf42d6e471d3c2ac3ba6bef33ccb2b8ffa358672deccc5bc6e5c",
+      "maskSha256": "399cc7c083492f734e1699dc9776b0d257554f262ba4968626b7a32482b0cb2e",
+      "popcount": 122636,
+      "bbox": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 2,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S2",
+        "target": "legacy"
+      }
+    },
+    "92b0721e9e11f8d526fc4c100b1b01c78b24c29b2cc4288026b92964a8d1aea1": {
+      "pngSha256": "bcf52df6f90c989f545950887a4883c1c395d4696b411a51e29bcf3c951feb49",
+      "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+      "popcount": 123258,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 759,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 1,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S3",
+        "target": "legacy"
+      }
+    },
+    "a7a7e9a6a473c11ec2656d8fce941bcee43da140be86831f72cb75b985a1b7ca": {
+      "pngSha256": "7f3585fa09d91ac406f7d4105363818528aff0f67f9dea4f574de5c99b22c2a2",
+      "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+      "popcount": 123258,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 759,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 2,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S3",
+        "target": "legacy"
+      }
+    },
+    "e997fa7a766c64951d486737221c02594cd9963734bb8610dbdc7fee7e383878": {
+      "pngSha256": "43aeab907e5f309bc289fba8d4064389f73a4f9dc7f60322c3be29b543c49de0",
+      "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+      "popcount": 123258,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 759,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 1,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S3b",
+        "target": "legacy"
+      }
+    },
+    "23d7899e26e2698e3789b6c2c2185208bcf52d095f2753dafd54706ba79ace49": {
+      "pngSha256": "b352f1f81b1e13f8fd6978b982c1d6dfc8dc6c2693f949020c0d207d0a293889",
+      "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+      "popcount": 123258,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 759,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 2,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S3b",
+        "target": "legacy"
+      }
+    },
+    "1a89dae64e4cea93d29669eb579fe600c78bca29f9480bae1bb322c7c9450f88": {
+      "pngSha256": "31074ee718129d8ce3594d475d1838cb7df502874d45b89fa299aa378b7afb32",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 1,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S4",
+        "target": "legacy"
+      }
+    },
+    "546d6c2c163c39aff14026c245ee4f14689a390b801772a7764e2ba1dfa68619": {
+      "pngSha256": "0f8364fede0176b83523d7025e9623ce261e0ae15a1923d84be61429351c22a0",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 2,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S4",
+        "target": "legacy"
+      }
+    },
+    "d07d93072121bb6c4a45b3def9d3a2c2615d6be8dc8366e902a899655a0f8851": {
+      "pngSha256": "18ee51414594ca4cc9b90fd731bd96639c33a43f44a8584c98e22b9ff785d952",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 1,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S6",
+        "target": "legacy"
+      }
+    },
+    "240525cdbf43305ad1eb56344c2ba9805259376191c6f41562b76d688a621647": {
+      "pngSha256": "57bbf0fc9c5d04a3d41f1114a2508f7d778223086a747a924b6c0580e1af2382",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 2,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S6",
+        "target": "legacy"
+      }
+    },
+    "823c51c442b26c0441ba1a618c64105f8174290383696fd8fa2bbca0bdd1d785": {
+      "pngSha256": "4b3c6e97c265e1ba12ddf44bf0e93c9d94995565b6282c3115b43b3560431de4",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 1,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S7",
+        "target": "legacy"
+      }
+    },
+    "e5217021114c85263302f0cd49464193a64bfaac8a9daf013112a08ef41dfb66": {
+      "pngSha256": "c48ca8cd75f9be37f741c3701a0b7dd1ca63520629a46efb9dd82bb1a9115432",
+      "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+      "popcount": 89328,
+      "bbox": {
+        "x0": 207,
+        "y0": 0,
+        "x1": 548,
+        "y1": 393
+      },
+      "provenance": {
+        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "browserVersion": "153.0.8010.12",
+        "chromiumRevision": "1243",
+        "dpr": 2,
+        "harnessVersion": 1,
+        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "playwrightVersion": "1.63.0",
+        "previous": null,
+        "reason": "W0.5 initial",
+        "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+        "state": "S7",
+        "target": "legacy"
+      }
+    }
+  }
+}

@@ -20,6 +20,12 @@ cpal = "0.18"
 libc = "0.2"
 # OKLab k-means palette engine, shared with RMPC-Auto-Theme.
 color-core = { git = "https://github.com/animegolem/color-tool-kmeans", rev = "5baa20e021855fbc57aebf48fa0f9b3374ded281" }
+# Pure skin-engine logic (hit tables, frame fan-out, skin and pref stores, guards). Tauri-free so
+# `cargo test -p headcore` runs without the app; the glue that uses it lands in the re-pin (W3.R).
+headcore = { path = "crates/headcore" }
+
+[workspace]
+members = ["crates/headcore"]
 
 [profile.dev.package."*"]
 opt-level = 2

@@ -7,14 +7,29 @@
     "skin": "python3 tools/convert_skin.py && tauri icon src-tauri/icons/app-icon.png -o src-tauri/icons",
     "dev": "vite",
     "build": "vite build",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest run --project unit",
+    "corpus": "vitest run --project corpus",
+    "check": "node tools/check-boundaries.mjs && tsc --noEmit -p tsconfig.check.json",
+    "skinlab": "node tools/skinlab/run.mjs",
+    "coverage": "node tools/corpus.mjs"
   },
   "dependencies": {
+    "@jitl/quickjs-ng-wasmfile-release-sync": "0.32.0",
+    "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
     "@tauri-apps/api": "^2",
+    "fflate": "0.8.3",
+    "jpeg-js": "0.4.4",
+    "quickjs-emscripten-core": "0.32.0",
     "three": "^0.186.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
-    "vite": "^7"
+    "happy-dom": "20.14.5",
+    "playwright-core": "1.63.0",
+    "pngjs": "7.0.0",
+    "typescript": "7.0.2",
+    "vite": "^7",
+    "vitest": "5.0.3"
   }
 }

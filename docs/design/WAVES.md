@@ -70,7 +70,7 @@ W0.1 runs first. W0.2 to W0.5 run in parallel after it.
 
 ### W0.1 Scaffold and contracts · O · M
 
-- **Owns**: `package.json`, `package-lock.json`, `vitest.config.js`, `tsconfig.check.json`,
+- **Owns**: `package.json`, `package-lock.json`, `src-tauri/Cargo.lock`, `vitest.config.js`, `tsconfig.check.json`,
   `.gitignore`, `src/engine/contracts.d.ts`, `src/engine/options.js`, `src/engine/index.js` (a stub
   whose `createEngine` returns an engine whose `load` rejects with `Error('engine not implemented')`;
   W4.1 replaces it), `src-tauri/Cargo.toml`
@@ -209,6 +209,12 @@ W0.1 runs first. W0.2 to W0.5 run in parallel after it.
 - **Deps**: W0.1.
 
 ### Gate G0 · O
+
+*G0 rulings (2026-10-06):* W0.2's `src/entry.js` replays the window `load` event after the legacy
+import when `load` already fired (the legacy mask pass at `main.js:586` would otherwise be lost
+behind the dynamic import); skinlab's capture replays it the same way, so app and oracle match.
+W0.5's S7 pauses the CSS transition at 60 ms instead of a real-time capture (report-only state):
+ratified. A bless that finds a capture unchanged keeps its old provenance reason: ratified.
 
 - Re-run `bless --target legacy --reason "G0"` and `verify-legacy` twice; inspect every golden PNG.
 - Record the live popcounts in E Appendix A (replacing the emulated reference, `parity` open question 9).
@@ -389,7 +395,9 @@ All tasks run in parallel.
 - **Owns**: `src/hosts/test/{clock.js, media.js, prefs.js, dsp.js}`, `tests/hosts/test/*`.
 - **Implements**: E §5.8 `EngineClock` (manual), E §5.6 `MediaModel` (scripted fake with presets
   `stoppedEmpty`, `stoppedQueue5`, `stoppedQueue12`, `playing` from `parity 4.1`, a call log and
-  `emit(changes)`), `DspPort` (fake, ±5 balance detent), `PrefStore` (in-memory Maps, `seed`, caps).
+  `emit(changes)`). **G0 ruling:** the preset rows (titles, durations, status fields) are imported
+  from `tools/skinlab/media-presets.js`, the single source the legacy goldens were captured with;
+  never re-typed. Otherwise S3/S3b cannot match pixel for pixel.), `DspPort` (fake, ±5 balance detent), `PrefStore` (in-memory Maps, `seed`, caps).
 - **Acceptance**: `npm test -- tests/hosts/test`: `advance(100)` fires frames at 16 ms steps and timers
   in time order, `now()` frozen between advances; presets reproduce the `parity 4.1` status and queue
   records; the fake's `isAvailable` follows the oracle table (E D6); `stop()` while stopped is recorded

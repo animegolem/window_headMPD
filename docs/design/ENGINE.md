@@ -1319,7 +1319,10 @@ through `HostAdapter.palette` and never read files.
 ## 5. Contracts (`src/engine/contracts.d.ts`)
 
 W0.1 (Opus) writes these verbatim. Sonnet tasks implement them and may add private helpers, never
-change them.
+change them. Two mechanical departures in `contracts.d.ts` (G0): §5.5's `animate:
+Pick<Animator, ...>` is spelled out member by member, because the §5.11 `Pick` interface shadows
+TypeScript's utility type; and a type-only `Buffer` shim exists so `jpeg-js`'s typings check
+(engine code still may not use `Buffer`).
 
 Function signatures are written below as declarations for readability. In the file, W0.1 expresses
 each as an exported function type (`export type ReadZipFn = (bytes: Uint8Array, caps?: Partial<ZipCaps>)
