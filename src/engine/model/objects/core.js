@@ -5,7 +5,9 @@
 // `makeObject` is where the schema is enforced, so no handler has to repeat it:
 //   - the member must exist in the class (case-insensitively): an unknown get returns undefined, a set
 //     is dropped, a call returns undefined, and the ledger records `unknown-member` (E D1, membrane);
-//   - a method reads as `{ method: true }` and only `call` runs it; a property is never callable;
+//   - a method reads as `{ method: true }` and only `call` runs it; a property called with no arguments
+//     returns its value (JScript's IDispatch treats `obj.prop()` as a property get: the corpus has 28
+//     `mediacenter.effectType()` / `effectPreset()` calls), and with arguments it is an error;
 //   - a `stub` member returns its type-correct inert value and is ledgered, whatever a handler says;
 //   - a `denied` member is refused by the `deny-log` policy and ledgered once;
 //   - a read-only member drops writes.
@@ -206,8 +208,12 @@ export function makeObject(ctx, className, handlers = {}, opts = {}) {
     const key = String(member).toLowerCase();
     const spec = lookupMember(className, key);
     if (!spec) { unknown(member, 'call'); return undefined; }
-    if (spec.kind !== 'method') { unknown(member, 'not a method'); return undefined; }
     const a = Array.isArray(args) ? args.slice(0, MAX_ARGS) : [];
+    if (spec.kind !== 'method') {
+      if (spec.kind === 'prop' && a.length === 0) return value(spec, key, quiet);
+      unknown(member, 'not a method');
+      return undefined;
+    }
     if (spec.impl === 'denied') {
       policy.denied(apiName(className, spec.name), a.length ? text(a[0]).slice(0, 120) : '');
       return stubReturn(ctx, spec);

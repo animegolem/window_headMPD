@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+  "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
   "entries": {
-    "220ce3e6db02f1e8d71813c14ad553ecc592b063dea5d8791f020694cbe6c854": {
+    "bbed495e21a655bb13eae02455e8989ca9949ca039bff6fcdf08a423cc092075": {
       "pngSha256": "077c07351237ee274354b8c1391203c347b9e452aa37f2b6e119396862f51836",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -13,21 +13,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "e0df27be41fc895d6792709c84b8b7b29d3468d39dd0ae046e7e2b7c0af8e373",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "077c07351237ee274354b8c1391203c347b9e452aa37f2b6e119396862f51836"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S1",
         "target": "legacy"
       }
     },
-    "85221e2de36b840a085c8c2d9ca610e3ed850be7071ea14ee08ee9b0ee2a9fa1": {
+    "2633be0ad6411affb3aecff74f5b253b44518a4cbf7ce8762f390690ce69bb36": {
       "pngSha256": "4f13c73e6a73bb32d7825385fc8b05def300ceb6e1d2bb30a09f964646a096e5",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -38,21 +42,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "2a24ea3e534afe8058431fe636a85edc180aa6d910145de5659ff7e3035c89e6",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "4f13c73e6a73bb32d7825385fc8b05def300ceb6e1d2bb30a09f964646a096e5"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S1",
         "target": "legacy"
       }
     },
-    "4f73b6f5e8c1cab6a3ec1fb6b1f318b520e6a4a864eac51a6485daf0712d9fe9": {
+    "eb633cf80b76e9fd80a06d6229fe512d9e2f2b2184dfcb4b8af48253fa89d093": {
       "pngSha256": "bcedeec175cc2fd619969673c9fd866c9189bef8792a4255be3730fafbb09854",
       "maskSha256": "399cc7c083492f734e1699dc9776b0d257554f262ba4968626b7a32482b0cb2e",
       "popcount": 122636,
@@ -63,21 +71,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "e0be5d61a835b810671728ae4bb215015603fb6633637587d5db1985178b998d",
+          "maskSha256": "399cc7c083492f734e1699dc9776b0d257554f262ba4968626b7a32482b0cb2e",
+          "pngSha256": "bcedeec175cc2fd619969673c9fd866c9189bef8792a4255be3730fafbb09854"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S2",
         "target": "legacy"
       }
     },
-    "d0f814723586283dbae9e8b8ad417ec8dc77ccdde8a431b1defd2d419e247ac2": {
+    "34df0ab233a9e523267ff860c7298474be7b7f722c9709484c91c3b9b875ff92": {
       "pngSha256": "8a0b33a72a8ecf42d6e471d3c2ac3ba6bef33ccb2b8ffa358672deccc5bc6e5c",
       "maskSha256": "399cc7c083492f734e1699dc9776b0d257554f262ba4968626b7a32482b0cb2e",
       "popcount": 122636,
@@ -88,21 +100,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "8c859b586f24e9851bff6db7c30b723d6f8f719c4951566b421eda800a71f7ec",
+          "maskSha256": "399cc7c083492f734e1699dc9776b0d257554f262ba4968626b7a32482b0cb2e",
+          "pngSha256": "8a0b33a72a8ecf42d6e471d3c2ac3ba6bef33ccb2b8ffa358672deccc5bc6e5c"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S2",
         "target": "legacy"
       }
     },
-    "92b0721e9e11f8d526fc4c100b1b01c78b24c29b2cc4288026b92964a8d1aea1": {
+    "15ba1df4df93f1d44dad4d6b0ad1d8e8321fbaeff1cf9eb900cf8b50cc24d688": {
       "pngSha256": "bcf52df6f90c989f545950887a4883c1c395d4696b411a51e29bcf3c951feb49",
       "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
       "popcount": 123258,
@@ -113,21 +129,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "b348f7784048a0a2e5e81bc4b642d9b339a02a147b90bf04b186eb9c5990fc2e",
+          "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+          "pngSha256": "bcf52df6f90c989f545950887a4883c1c395d4696b411a51e29bcf3c951feb49"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S3",
         "target": "legacy"
       }
     },
-    "a7a7e9a6a473c11ec2656d8fce941bcee43da140be86831f72cb75b985a1b7ca": {
+    "20da3557749117f665aea423a53f2e270778d52f5fb4d890a4bccc203145bfaa": {
       "pngSha256": "7f3585fa09d91ac406f7d4105363818528aff0f67f9dea4f574de5c99b22c2a2",
       "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
       "popcount": 123258,
@@ -138,21 +158,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "8e6effff3813f2cfaa607c6d8f530802b00bc401c89dee924e59ea77b11a33cd",
+          "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+          "pngSha256": "7f3585fa09d91ac406f7d4105363818528aff0f67f9dea4f574de5c99b22c2a2"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S3",
         "target": "legacy"
       }
     },
-    "e997fa7a766c64951d486737221c02594cd9963734bb8610dbdc7fee7e383878": {
+    "36e7664c546011a7df4b1f791594ebe740ec1192ff409303ed17d3ec911437ee": {
       "pngSha256": "43aeab907e5f309bc289fba8d4064389f73a4f9dc7f60322c3be29b543c49de0",
       "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
       "popcount": 123258,
@@ -163,21 +187,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "51594911047a3f28c7ac01369f02989269d473a44adcbedd78b099b07f4e1ad4",
+          "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+          "pngSha256": "43aeab907e5f309bc289fba8d4064389f73a4f9dc7f60322c3be29b543c49de0"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S3b",
         "target": "legacy"
       }
     },
-    "23d7899e26e2698e3789b6c2c2185208bcf52d095f2753dafd54706ba79ace49": {
+    "e7e7b805ede6f89e74141468e86f7d234cc63620ce3687b70e9285bd63697535": {
       "pngSha256": "b352f1f81b1e13f8fd6978b982c1d6dfc8dc6c2693f949020c0d207d0a293889",
       "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
       "popcount": 123258,
@@ -188,21 +216,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "35e9860f37e10d281ba889e3a8d891f1ed4ced7a82e125fb5f3ada905fcf8c14",
+          "maskSha256": "c12d86f5b183db534ed7eb882deb8e2f03fc7d10f0eb178dae8a15c7e2030e18",
+          "pngSha256": "b352f1f81b1e13f8fd6978b982c1d6dfc8dc6c2693f949020c0d207d0a293889"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S3b",
         "target": "legacy"
       }
     },
-    "1a89dae64e4cea93d29669eb579fe600c78bca29f9480bae1bb322c7c9450f88": {
+    "a2faa68233c2493f22a1d646bd12246c064cf9b2a816e4f703a47c64e30a5fb1": {
       "pngSha256": "31074ee718129d8ce3594d475d1838cb7df502874d45b89fa299aa378b7afb32",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -213,21 +245,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "a4cc2e3833f28cabbede082165d5357178b56a6819bdd52c0f5e39fa279cc874",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "31074ee718129d8ce3594d475d1838cb7df502874d45b89fa299aa378b7afb32"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S4",
         "target": "legacy"
       }
     },
-    "546d6c2c163c39aff14026c245ee4f14689a390b801772a7764e2ba1dfa68619": {
+    "551550410f8b9bf6e7e047e51a70d06004765162e6235c2c9af3e3c88b59310e": {
       "pngSha256": "0f8364fede0176b83523d7025e9623ce261e0ae15a1923d84be61429351c22a0",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -238,21 +274,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "3fee5945297e79a833817e29e174371ed1bf1008a28f8a3e6e2155b872ccb985",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "0f8364fede0176b83523d7025e9623ce261e0ae15a1923d84be61429351c22a0"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S4",
         "target": "legacy"
       }
     },
-    "58addec6a0404429b5459e646ac95889b3c2b6314eb4bae5ac1cac4bcdb2d0ca": {
+    "838e7f0ef7ad49ddf1f70e5d73a1560cf951e2560ca7d997ec9477803ca20eea": {
       "pngSha256": "80643344f3564102829690030273f27a9d376fae79aee9fecaf36e30136481e4",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -263,21 +303,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "a659d8d19a97a30235577640cb266ae900a3fc32093f9e6951137cbbdb64fd7f",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "80643344f3564102829690030273f27a9d376fae79aee9fecaf36e30136481e4"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.close.down",
         "target": "legacy"
       }
     },
-    "0e0d7e94328ebc8f1ad56ed8f8c8026863e13b6dbe4d1134c2ea1d3f225ba487": {
+    "f34a0dbd4ed14ea47ae301a80168f8eb2a15cfbf008bd7d8f53be51b0c0b5ab9": {
       "pngSha256": "99107d3a5899ee6a8c29427c95bed096698b671decc46c781d747c53ffba9ce7",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -288,21 +332,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "a40842f211f935ceb19bf29237e2b53f709a6a753d65a064332e68d615232d48",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "99107d3a5899ee6a8c29427c95bed096698b671decc46c781d747c53ffba9ce7"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.close.down",
         "target": "legacy"
       }
     },
-    "39ee754007f0e66453a24571992cbc7827970287fe9491a6b45b3198171e9a53": {
+    "83b4d4505c66729cb0838ba62b9b437e56253a81c7e5ad1e21d87f2d3f0cbf95": {
       "pngSha256": "dc3186be7872b16e923db30e36f148f907f619f44a5d4f5fcc5fdb0a91d10ace",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -313,21 +361,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "12d7c054612960e8784c43e29dede1d5f193bcc5a7895ad913db6ec285f049d3",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "dc3186be7872b16e923db30e36f148f907f619f44a5d4f5fcc5fdb0a91d10ace"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.close.hover",
         "target": "legacy"
       }
     },
-    "9162110f39a1109c659d8f2bf66b3697fff4aeb404f485a45f2f9544bedf5c3e": {
+    "ddd312d95bfb4bfb05af283683b1669a6611c55c6a96433071a491b2049cccbf": {
       "pngSha256": "b733fa5905574ef0e25281af0c07afcf0518dff2d50419b3f884d06b57d66395",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -338,21 +390,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "8f50ef08cc77a9acd2e3b504374c1d4ced305019f0a6153d50c815d38d370f32",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "b733fa5905574ef0e25281af0c07afcf0518dff2d50419b3f884d06b57d66395"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.close.hover",
         "target": "legacy"
       }
     },
-    "119fd9e938a9012eea66da4e277e37d2be05df71b4120d94bb1fbaba02b10db5": {
+    "82b2694907af33598fa7372f9a036471665a9fc0f59f8f6af256c4b2734fd8bd": {
       "pngSha256": "47ba02e8c92612d54bd7c261b5581b618be78ce740375d010d93c29bdaf7428d",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -363,21 +419,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "8b760077f68a5c30eeb2916904e268e205a2bfe446d7e82d6e01e9cb8c2ba5de",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "47ba02e8c92612d54bd7c261b5581b618be78ce740375d010d93c29bdaf7428d"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.minimize.down",
         "target": "legacy"
       }
     },
-    "ab722ea52d66b0beff0de4bd4c8c2b62f8e78a17e796235e81e6f653eb2b3456": {
+    "80c2203aebf01e507712c25c0d0b5e8d6806621f81b40a0cc07f59924a305b8d": {
       "pngSha256": "5582e5dacd28c5b124b38299ef3e5f092285f3d862a4c3fc021443f09356fd19",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -388,21 +448,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "1f259a052aaef7a20a1fc5b440e4157abc8bb64bd33e932ab89d9fad00cda20e",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "5582e5dacd28c5b124b38299ef3e5f092285f3d862a4c3fc021443f09356fd19"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.minimize.down",
         "target": "legacy"
       }
     },
-    "ba50477d2dd2a33848e343cbc2e4150e499f7ed928fa05d23bdabeea12715b67": {
+    "6f75b92e3e152f1bf5ee84ab03fcbd7b95e92e11c5f2a7af6f47154446cc3f82": {
       "pngSha256": "4c36366145683f21fe852cbd0c9a410385728d4cf94ead0e4534fd1e6606150d",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -413,21 +477,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "29918c36e7ab1c6eb4797cffa3ca4c5f87e979a214bdf741478b3ce68098be3c",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "4c36366145683f21fe852cbd0c9a410385728d4cf94ead0e4534fd1e6606150d"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.minimize.hover",
         "target": "legacy"
       }
     },
-    "3594c1e09c77785892870c700d267a3e6bdb4121612f72cfb87360c700fd5769": {
+    "d84e56efdb96e427f4f1c799c50d1ef42db6c7c56978e00b08da65ea771a160e": {
       "pngSha256": "1ad3e35267b08c26d9617623f846df63d4fc28847b0ac37895ab866c7e9d4b43",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -438,21 +506,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "c37918df35a35645d62026d424980ca512aa149725882fda83bae0752a52c95f",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "1ad3e35267b08c26d9617623f846df63d4fc28847b0ac37895ab866c7e9d4b43"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g0.minimize.hover",
         "target": "legacy"
       }
     },
-    "467ae37ee00b83b08abae5a1888d67ea57a10edaf2f525016e4a13654a1a7007": {
+    "1cebbf7d6201e31776761930b42e572a5ff63ea788269172883783498e09768e": {
       "pngSha256": "17f06769330152d8ff70dfe2f95c410692078a71128eb1e74a9ed53794afd104",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -463,21 +535,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "24d8b93a4fcd7224e4e77121c047a9b459880a699294f12b4271b40cfddd1c0e",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "17f06769330152d8ff70dfe2f95c410692078a71128eb1e74a9ed53794afd104"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.next.down",
         "target": "legacy"
       }
     },
-    "2e7083c12ac8de4efdfc1e44f1d023f3f8bfbe6607042814768c53f596edd977": {
+    "3312446ad8f36792229491871a2d2dad91c095ce568aed4e42c8cdfd7b9623f5": {
       "pngSha256": "3fc4f30f76a6625984219d12cf9fef81ab40cef3b3085b61f2c960aa5a00be19",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -488,21 +564,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "7049ae9c1dc23f32323fa933592133ac374be2b29d60a461914ac4f3753d3eee",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "3fc4f30f76a6625984219d12cf9fef81ab40cef3b3085b61f2c960aa5a00be19"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.next.down",
         "target": "legacy"
       }
     },
-    "cbcf09b736f17681a785c4b6b7f3757b3bf42bd850df0627c67d91bbb8ff20b2": {
+    "afefa81695c6ae2bbeb9138c6d7b87dcf3e29d39765009311db0abc600c26a08": {
       "pngSha256": "d5b7842ad68dc07678b1564fddc8232f371b0a97fdf3aec01091f3277259be2a",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -513,21 +593,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "6e88a9787acdfc0bf26cae0d9f943d5f125b5096b7d5575f71dd6b1eeef2f95b",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "d5b7842ad68dc07678b1564fddc8232f371b0a97fdf3aec01091f3277259be2a"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.next.hover",
         "target": "legacy"
       }
     },
-    "c61f4d7f1af88769f1c551a9dcce0c2b8cbf15b67864303eed97f9f532b186a5": {
+    "4f9e2a3e221711388f9adb0e4313397d9a67b919015f70a6e4b00218849eb36c": {
       "pngSha256": "7fa73955468fea3f49c4a00817806715b49fc667ab605425fd24a61e668dfc41",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -538,21 +622,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "fe533461cb234fd9305a06f898526e47190f818049627b27b1b41abb0ac35d34",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "7fa73955468fea3f49c4a00817806715b49fc667ab605425fd24a61e668dfc41"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.next.hover",
         "target": "legacy"
       }
     },
-    "ad3b9f9ac74874ecc39659b09bb3c57abffc7d2a43c2da3a7ee915a06c4da857": {
+    "26f1c1b7208e7c8b621c14e24862de4eb794c3dfdfb8edf9a1c4b77e28d4a2f1": {
       "pngSha256": "4a5d174cdd97b91e377219f42c84f739622d823e5967ca2504bbe1a11cfd245c",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -563,21 +651,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "3e496b5b19f293f6dafd42ef66e11d8eab8335fd79b937010f826c36d4811012",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "4a5d174cdd97b91e377219f42c84f739622d823e5967ca2504bbe1a11cfd245c"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.play.down",
         "target": "legacy"
       }
     },
-    "2593a7e1481c862cd93e5cf0df05850a25f351b84c89eb083fd43fe7ea621b9c": {
+    "e435aeaf8fce7d42065f1fd9ef3aa906e12ac9223358eda9e2d3a25741349227": {
       "pngSha256": "b46184cd9840235ae7e2cfb5080647963f12a55a1ac65c3ee454b13ab78f32d9",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -588,21 +680,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "39868340562ea2b5e0c87b756d568f39755c84d0cd2b520db44ad784469292cb",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "b46184cd9840235ae7e2cfb5080647963f12a55a1ac65c3ee454b13ab78f32d9"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.play.down",
         "target": "legacy"
       }
     },
-    "6ddd7386db4762d70dffa3d7ce21036a3793c1b34545509e561e2ac7dbb22d3b": {
+    "60a833fe9cb474d0f6f88be579359ccfee5241e3ac3a47d8c401a6071d7bcce5": {
       "pngSha256": "d298dade5a46fadbe2e025605f4a4811e3f9b959de0de2a98b8d0357cf3a5ac6",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -613,21 +709,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "adb12da53fd4796e363a70e91615e61053ad4f484df41d0ea2230e0d11e9bf76",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "d298dade5a46fadbe2e025605f4a4811e3f9b959de0de2a98b8d0357cf3a5ac6"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.play.hover",
         "target": "legacy"
       }
     },
-    "a580b4c990c195a053f4dadc8dd0f2d6f804a1e8460e8e419cb07ee9cfd5b55c": {
+    "5085cdfb6ff25fa523a2a704baf494f6244a7578788816b0ed47c8069aee156e": {
       "pngSha256": "a74d32f38b7934ee345e5e8add5caee5336415f58382f0208637a75c7ad58e21",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -638,21 +738,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "b3903617539bc0d4a092a87c7e31a91b3fd2138084bf38b0431d6769d78ee686",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "a74d32f38b7934ee345e5e8add5caee5336415f58382f0208637a75c7ad58e21"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.play.hover",
         "target": "legacy"
       }
     },
-    "628b1d1d884a57dd919cb5fae5ac9f1a1c018c9c9f69479f0e1e74ff52faf487": {
+    "3043e00aa43252b4937bfa770cb1ad38e03b1fb6c441dcd02a68ac6b83e5fc77": {
       "pngSha256": "15d0dfefb003da3e6378598ed20c0807d8f5c60992391570c062b81592d4ce1b",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -663,21 +767,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "785f12f8d53e576f89794edd5b99f2a907c693e9ef4d78af4d59dc5806de834f",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "15d0dfefb003da3e6378598ed20c0807d8f5c60992391570c062b81592d4ce1b"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.prev.down",
         "target": "legacy"
       }
     },
-    "ef46f881ebea1ffce5ea76564fe6ffe872201b0c2e8624e9f1e3cb8441c988c8": {
+    "2682d1cf239c8dba6cc8bfec9ef00e5ccb5f056a2869e549c6199cae90c87e1e": {
       "pngSha256": "c612b73a84b8930f798d9d1881dc77f7650e6e40127229eaf713a7605e39b004",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -688,21 +796,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "096b3cbd078289666bed53c731ef540ba7614766981e145bd1c5ec1ada61d5b2",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "c612b73a84b8930f798d9d1881dc77f7650e6e40127229eaf713a7605e39b004"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.prev.down",
         "target": "legacy"
       }
     },
-    "2e9635b44b918d5e1174f6ce011530c2caced59802197ddd1bff97e2ca62f3a9": {
+    "32add2e57c3e92940dd7593bd9261e444a055b73be6d117c437e9defd3b006c1": {
       "pngSha256": "cf5b47e6a6f34a81e70ae4205679f0b3f4ef67ad20cf3099d15f21d00d5f969c",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -713,21 +825,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "8693e3e9cf6c6e42abbd7e353cb5c0d2ce4d747359c6e47d6a41d72a52c95799",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "cf5b47e6a6f34a81e70ae4205679f0b3f4ef67ad20cf3099d15f21d00d5f969c"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.prev.hover",
         "target": "legacy"
       }
     },
-    "99459a5ad5ce1facc44ae03a114908356b4433e020b3e095fb42c0f499d38a4b": {
+    "d1189b7072554418f3bd6991ef74af4aff286fe3cc26f87241264b7b4f8639a1": {
       "pngSha256": "1bc42a27f5ae0a853c5dcdda474ce76ea6eee515e19477757234016cab04ec05",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -738,21 +854,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "5edd7e874ab65b54cec802ba20f38b8679a5a89919df369476e31c07c0e6692a",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "1bc42a27f5ae0a853c5dcdda474ce76ea6eee515e19477757234016cab04ec05"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.prev.hover",
         "target": "legacy"
       }
     },
-    "de62bdee2d4b2065976b13ab9eb1a20443d2d16afc1420bafabaf2a1a10c1abb": {
+    "37c1b6610e13c2ddc3e99201c2158bb7e718fdfd9ddb60253772092006367cd5": {
       "pngSha256": "9b407826cc0d7268bae48f4f93ae3cfc9fe803fe870a481c56c4db0e6b3ca8d2",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -763,21 +883,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "a2f229c0ea554190576fde871fef12a185b56a5dba72393b1665c94b71e09892",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "9b407826cc0d7268bae48f4f93ae3cfc9fe803fe870a481c56c4db0e6b3ca8d2"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.stop.down",
         "target": "legacy"
       }
     },
-    "9c727ee9bd4d7300fb9860cdc879727a612e6ad0e657c6733ba4da4acb4fb009": {
+    "427d0d8534c388c9c7da2f8ac6c7fb3c1f15b3941bd88537e3d270a29a3c42c8": {
       "pngSha256": "3c8e5e2c1cadfe67a354ca61877e29cf39163f92fea90f66284a197656ad8854",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -788,21 +912,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "3482b499f3bfb64fc0a42eb7097a19f9f3d5b999a766d9dc31287d32de93d517",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "3c8e5e2c1cadfe67a354ca61877e29cf39163f92fea90f66284a197656ad8854"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.stop.down",
         "target": "legacy"
       }
     },
-    "a81fe4be0e96e7e4006c668d8192de47480248c707cdf5737aeb6d208dc55a2c": {
+    "5a6ec3db3042b40a2dd463a3094dce267f001ed593f1c6d6daad2fea91c34b1e": {
       "pngSha256": "94180caafacaed51e24c408c6daf5ce07b0775158e63d3c738f78bf5af1284c5",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -813,21 +941,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "59a0dec475fab3aa1a9d276ba27ee0bf0a4c66881d7d94bd7c5daa0e89232cf7",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "94180caafacaed51e24c408c6daf5ce07b0775158e63d3c738f78bf5af1284c5"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.stop.hover",
         "target": "legacy"
       }
     },
-    "8cc7668eb797d25f95e83844d7137c58f4617b80023ba628b57b37925f22b224": {
+    "2dfb95a5b7809ac09be55cd7fd433f72c9e5254d4c5a98e55c3ff0623cee942b": {
       "pngSha256": "40bd04a9cc39075fe53728a34ffbe38e834e817e2444da8d7fc46975f270d2f1",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -838,21 +970,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "606bde97d5aed2b7603f54bde140d19d68e1881c7c7b08eae8d3ada615a0f481",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "40bd04a9cc39075fe53728a34ffbe38e834e817e2444da8d7fc46975f270d2f1"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.stop.hover",
         "target": "legacy"
       }
     },
-    "ab95d7667d0c7c11cee0cae0e80fdb6d2fc499a3658141246852524c28aeb24c": {
+    "5932515e4cda7871ee9bf5aa9f72d70b20a7afe855c3453d2f76726bae07717a": {
       "pngSha256": "3b6c75e83ce485f50e0b3bbd2cb7894573db079f20b6f8efad9dde05f1ef8298",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -863,21 +999,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "c2feb29302d55beb954cb07f658ea9d979181353edbb4f89578c6a4b22f18f53",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "3b6c75e83ce485f50e0b3bbd2cb7894573db079f20b6f8efad9dde05f1ef8298"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.vis.down",
         "target": "legacy"
       }
     },
-    "5bb57d710ada206146ae400d6363ca76ce1432c785f0500139e589345084e6c0": {
+    "b913dcac913bcf1955bfedfb59302e1b2663280281edb72d50b42983d22ddd03": {
       "pngSha256": "ec2ab4d0a97ce75b4938afc087e129becfa119be3e96f1c5cfb626684a1eee66",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -888,21 +1028,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "7e33d74b8cf94eb0c834770953022cd50dbe48199f6be7ad4fb47a3427f19708",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "ec2ab4d0a97ce75b4938afc087e129becfa119be3e96f1c5cfb626684a1eee66"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.vis.down",
         "target": "legacy"
       }
     },
-    "206530f9da7f0a783713e07a4de1a13313317278f18bb5c4c85a5da8b6073f8b": {
+    "b0ab92aebc385a649ef12d41375212e518b4f68a31e6165e0df36ad564c2d238": {
       "pngSha256": "6cf98cdbed1bc76a7006c015f8cffb611650924303ef68e207d0b900f6d31239",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -913,21 +1057,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "cb6bf75fe9e4ab73305d0af1e09b80acfd38086e19717c956976365821db379d",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "6cf98cdbed1bc76a7006c015f8cffb611650924303ef68e207d0b900f6d31239"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.vis.hover",
         "target": "legacy"
       }
     },
-    "f002460750545f4e00778393dbacced358d5f8ac74556f41d2b71ca96ae7d0ae": {
+    "a92eb5d9448b74988e84fb8c65ebb1ae8f1f551dcafdc8323043ad1c20b4856d": {
       "pngSha256": "f87c6ff4aee8efd1a9ac694f25f700406b423e3758ea82e65f31b41113479559",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -938,21 +1086,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T07:17:14.306Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "G2: supplemental hover/press",
+        "previous": {
+          "key": "48784ae3b0a2793179129e5b368139cf8a272efc76014e5e2c6f8c4a58c6faff",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "f87c6ff4aee8efd1a9ac694f25f700406b423e3758ea82e65f31b41113479559"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S5.g1.vis.hover",
         "target": "legacy"
       }
     },
-    "d07d93072121bb6c4a45b3def9d3a2c2615d6be8dc8366e902a899655a0f8851": {
+    "9a073cda2e940645ec92df0c4f788608b8fa478893cbe2e2484a6600ff1be14e": {
       "pngSha256": "18ee51414594ca4cc9b90fd731bd96639c33a43f44a8584c98e22b9ff785d952",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -963,21 +1115,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "aed86eb133d513d37d5361b569583cc2f161d510df91a7c78feeeddfde206f76",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "18ee51414594ca4cc9b90fd731bd96639c33a43f44a8584c98e22b9ff785d952"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S6",
         "target": "legacy"
       }
     },
-    "240525cdbf43305ad1eb56344c2ba9805259376191c6f41562b76d688a621647": {
+    "29b8812e5ffcc5d31d316c45cd66b5c032e5745ea5190d508cf1f8e114f78ecf": {
       "pngSha256": "57bbf0fc9c5d04a3d41f1114a2508f7d778223086a747a924b6c0580e1af2382",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -988,21 +1144,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "bdcedf256de5a99d3fd95a2bd0eb134e69ae34d8f094af894d09a4b4a6e8cf7f",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "57bbf0fc9c5d04a3d41f1114a2508f7d778223086a747a924b6c0580e1af2382"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S6",
         "target": "legacy"
       }
     },
-    "823c51c442b26c0441ba1a618c64105f8174290383696fd8fa2bbca0bdd1d785": {
+    "9e9882eb25dd5a89e84007e342b292362b52119849cf2746e3fb5e22fec626a0": {
       "pngSha256": "4b3c6e97c265e1ba12ddf44bf0e93c9d94995565b6282c3115b43b3560431de4",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -1013,21 +1173,25 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 1,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "917072d92395146e223d6a41da472fac2fea7fee018e506e809c2b872f47d720",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "4b3c6e97c265e1ba12ddf44bf0e93c9d94995565b6282c3115b43b3560431de4"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S7",
         "target": "legacy"
       }
     },
-    "e5217021114c85263302f0cd49464193a64bfaac8a9daf013112a08ef41dfb66": {
+    "33d815752a93eb715423cd431182d900e54a0242986fec30257015e0c644e8a4": {
       "pngSha256": "c48ca8cd75f9be37f741c3701a0b7dd1ca63520629a46efb9dd82bb1a9115432",
       "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
       "popcount": 89328,
@@ -1038,15 +1202,19 @@
         "y1": 393
       },
       "provenance": {
-        "blessedAt": "2026-10-07T02:41:48.337Z",
+        "blessedAt": "2026-10-07T10:12:52.587Z",
         "browserVersion": "153.0.8010.12",
         "chromiumRevision": "1243",
         "dpr": 2,
         "harnessVersion": 1,
-        "oraclePin": "0d511c75f7d95413152966c40b5f14c3ab766b58c7395cf7dfaf22436dddf5bd",
+        "oraclePin": "1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2",
         "playwrightVersion": "1.63.0",
-        "previous": null,
-        "reason": "W0.5 initial",
+        "previous": {
+          "key": "fa0667893ea86094208b64c3e3d42588327f3c68daeeda6f5d00dea6138309e9",
+          "maskSha256": "5bec9ebefd5c979075761d551bb10953c10fe2197edebb396d553f186e95ca11",
+          "pngSha256": "c48ca8cd75f9be37f741c3701a0b7dd1ca63520629a46efb9dd82bb1a9115432"
+        },
+        "reason": "W3.R re-pin (clickthrough.rs removed)",
         "skinSha256": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
         "state": "S7",
         "target": "legacy"

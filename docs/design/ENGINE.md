@@ -115,9 +115,10 @@ gates, re-pins, triage).
 7. **The phase-1 fixture is the owner's `~/Downloads/Headspace.wmz`** (wmz sha1 `f9671f06…`). It is
    not `skins/wmp/Headspace.wmz`, the 2000 revision (`survey 0` item 9). Tests that need art skip
    when it is absent: skinlab exits 77, and vitest marks the test skipped. They never fail for that.
-8. **Pinned files** (`parity` line 18: `main.js`, `widgets.js`, `player.js`, `playlist.js`,
-   `style.css`, `viz/index.js`, `demo.js`, `tauri.conf.json`, `lib.rs`, `clickthrough.rs`,
-   `convert_skin.py`) are edited only in the Opus re-pin batch (WAVES W3.R) and at cutover. Sonnet
+8. **Pinned files** (`tools/skinlab/pins.mjs` `PINNED_FILES` is the list of record: `main.js`,
+   `widgets.js`, `player.js`, `playlist.js`, `style.css`, `viz/index.js`, `demo.js`,
+   `tauri.conf.json`, `lib.rs`, `convert_skin.py`; `clickthrough.rs` left the set at G3, replaced by
+   `hit_cmds.rs` in the re-pin, and is deleted) are edited only in the Opus re-pin batch (WAVES W3.R) and at cutover. Sonnet
    tasks list them as "must not touch".
 9. **macOS only.** Target WKWebView on macOS 14 or later.
 
@@ -711,7 +712,7 @@ when a dependency changes), and the corpus decides it: `left="jscript:view.width
 `horizontalAlignment="right"` in 2,773 of 2,791 cases, `top` with `verticalAlignment="bottom"` 2,602
 times, and `width="jscript:view.width"` with `stretch` 550 times. Authors used the expression for the
 initial position and the alignment to keep it; liveness is spelled `wmpprop:`
-(`top="wmpprop:svX.top"`, `spec 3.3`). After the pass, `layout/align` records each element's margins.
+(`top="wmpprop:svX.top"`, `spec 3.3`). After the pass, `layout/align` records the size each container's children were placed for (G3: so a script move or resize between the pass and a relayout keeps the element's current margins, and a slid drawer is not snapped back). Inside one element, `jscript:` attributes evaluate in attribute-table order (G3; corpus: order matters in 0 elements).
 A parent resize (phase 3) re-places by alignment: `right` keeps the right margin, `center` the centre
 offset, `stretch` both margins, `left`/`top` the origin. If R6 shows a skin that needs liveness, the
 escape hatch is a per-attribute `reevaluate` flag (cand-D), not a redesign.
@@ -1185,7 +1186,7 @@ hash, schema-validated by `src/app/sidecar.js` before use, refs stored in Maps):
   subview after the literal pass. Labels are 7 px = `fontSize` 5 pt by the `round(pt·4/3)` rule.
   `hostStyle` is a small allow-list (`letterSpacing` only) for oracle CSS with no WMS attribute. Any
   skin can get labels this way.
-- `attrs` set host-only attributes (prefixed `x-`, accepted only from sidecars). `x-foregroundMode:
+- `attrs` set attributes on named elements in both configs: ordinary WMS attributes (G3: the Headspace PLAYLIST colours the oracle paints) and host-only ones (prefixed `x-`, accepted only from sidecars). `x-foregroundMode:
   playhead` reveals the seek foreground to the thumb centre instead of `foregroundProgress`, without
   constraining the thumb (`parity` D2), for this skin only.
 - `compat` applies only under `oracle-compat`.
@@ -2008,6 +2009,7 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 
 ### 11.2 Deliberately left to phase 3
 
+- Calling a host property as a method (`mediacenter.effectType()`, JScript IDispatch): the host half returns the value (G3.F4), but the realm's proxy hands script the value itself, so `x.prop()` throws in QuickJS first; 28 corpus `jscript:` faults, none in Headspace (it binds through `wmpprop:`). Needs a realm-side mechanism (a zero-argument call rewrite in the R20 style), pinned by `tests/corpus/layout.test.js`.
 - Opening secondary views (`theme.openView`, `closeView`, `openViewRelative`) as native windows with
   `skin-<sha12>-<n>` labels, per-view realms, prefs coherence events, position persistence, the
   overlap-misroute test (0 in 200).
@@ -2147,6 +2149,7 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 - Masks (emulated; G0 replaces them with live values): 89,328 / 122,636 / 123,258 / 89,328; 37,430
   bytes each.
 - Animations: 120 ms linear; EQ ear at 60 ms ≈ x 103.
-- Live popcounts from G0: *(Opus fills in at gate G0)*.
+- Live popcounts from G0: 89,328 / 122,636 / 123,258 / 89,328 (S1–S4), equal to the emulation bit for bit; S5/S6/S7 keep S1's mask.
+- Oracle pin after the G3 re-pin (ten pinned files, `clickthrough.rs` removed): `1e6971e35fa009d5b3c8676b2bfdba36dd1055e6de34f95468611cd1bd7328e2`; all 42 manifest slots (21 states × DPR 1, 2) carried over with identical PNG and mask hashes.
 - Measured bounds from G4: `U-23-showBackground`, `button-transparency`: *(Opus fills in at gate
   G4)*.

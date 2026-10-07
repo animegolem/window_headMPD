@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "window_headmpd-sidecar/1",
+  "title": "window_headMPD skin sidecar",
+  "description": "Per-skin data the engine never reads out of the archive (ENGINE.md D10.6). One file per skin, named <sha256 of the archive>.json under src/app/sidecars/. src/app/sidecar.js validates every sidecar against this file before the engine sees it. Only the keywords sidecar.js implements are used here (a test walks this file and fails on any other): $ref to #/$defs, type, const, enum, properties, additionalProperties, required, propertyNames, items, minItems, maxItems, minLength, maxLength, pattern, minimum, maximum. A key this file does not name is rejected, at every level.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "skin"],
+  "properties": {
+    "schema": { "const": "window_headmpd-sidecar/1" },
+    "skin": {
+      "description": "SHA-256 of the archive this sidecar belongs to, lower-case hex. Must equal the file name.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "overlays": {
+      "description": "Trusted TEXT elements appended under a VIEW or SUBVIEW after the literal pass (the Headspace EQ frequency labels, parity D1).",
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/overlay" }
+    },
+    "attrs": {
+      "description": "Attributes the host sets after layout under origin 'sidecar', in every configuration: x- host-only switches, and the ordinary attributes of a host-drawn control the skin leaves at the WMP defaults (the Headspace PLAYLIST colours). Applied in file order, before compat.attrs.",
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/attr" }
+    },
+    "compat": {
+      "description": "Applies only under the oracle-compat configuration, after attrs: attributes that reproduce a slip of the hand port the faithful engine does not repeat.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attrs": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/attr" }
+        }
+      }
+    },
+    "actions": {
+      "description": "What the host does for skin calls it must define itself.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "returnToMediaCenter": { "enum": ["zoomToggle", "none"] }
+      }
+    },
+    "restore": {
+      "description": "Drawer state the shell persists and replays (parity D23): after every dispatch it reads each global and stores changes under pref in the app namespace; after onload it calls each toggle whose pref is true.",
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/restore" }
+    },
+    "viewResize": {
+      "description": "'ignore' keeps the window size when the skin writes view.width or view.height (parity D13).",
+      "enum": ["honor", "ignore"]
+    },
+    "tour": { "$ref": "#/$defs/tour" }
+  },
+  "$defs": {
+    "ref": {
+      "description": "An element id: a declared id or Unnamed_<kind>_<n>. Any non-empty string without control characters; __proto__ and constructor are ordinary refs.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "identifier": {
+      "description": "A script global: a variable or function name.",
+      "type": "string",
+      "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,63}$"
+    },
+    "attrValue": {
+      "description": "AttrValue of the engine contract.",
+      "type": ["string", "number", "boolean", "null"],
+      "maxLength": 256
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "overlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parent", "tag", "attrs"],
+      "properties": {
+        "parent": { "$ref": "#/$defs/ref" },
+        "tag": { "const": "text" },
+        "attrs": {
+          "description": "Literal attribute values of the TEXT element, by attribute name.",
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9]{0,63}$" },
+          "additionalProperties": { "$ref": "#/$defs/attrValue" }
+        },
+        "hostStyle": {
+          "description": "CSS the WMS has no attribute for. letterSpacing is the only key allowed.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "letterSpacing": {
+              "type": "string",
+              "pattern": "^(?:normal|-?[0-9]{1,3}(?:\\.[0-9]{1,3})?(?:px|em))$"
+            }
+          }
+        }
+      }
+    },
+    "attr": {
+      "description": "One attribute write on the element named by ref: an attribute of the element's kind in the WMS table, or an x- host-only one (which the element model accepts from a sidecar and from nothing else). The value is coerced by the attribute's type, so a colour is written as #RRGGBB.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "name", "value"],
+      "properties": {
+        "ref": { "$ref": "#/$defs/ref" },
+        "name": { "type": "string", "pattern": "^(?:[xX]-)?[A-Za-z][A-Za-z0-9]{0,63}$" },
+        "value": { "$ref": "#/$defs/attrValue" }
+      }
+    },
+    "restore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["global", "toggle", "pref"],
+      "properties": {
+        "global": { "$ref": "#/$defs/identifier" },
+        "toggle": { "$ref": "#/$defs/identifier" },
+        "pref": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$" }
+      }
+    },
+    "drawers": {
+      "description": "One script name per drawer.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eq", "pl", "vis"],
+      "properties": {
+        "eq": { "$ref": "#/$defs/identifier" },
+        "pl": { "$ref": "#/$defs/identifier" },
+        "vis": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "tour": {
+      "description": "What the Headspace demo choreography (src/app/demo/headspace.js) needs to find its way around the skin: element refs, the two mapping colours of the transport group, script names, and the cursor's resting point in view px. Nothing in the engine reads it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transport", "playColor", "visColor", "eqHandle", "plHandle", "visNext", "reset", "bands", "rest", "toggle", "isOpen"],
+      "properties": {
+        "transport": { "$ref": "#/$defs/ref" },
+        "playColor": { "$ref": "#/$defs/color" },
+        "visColor": { "$ref": "#/$defs/color" },
+        "eqHandle": { "$ref": "#/$defs/ref" },
+        "plHandle": { "$ref": "#/$defs/ref" },
+        "visNext": { "$ref": "#/$defs/ref" },
+        "reset": { "$ref": "#/$defs/ref" },
+        "bands": {
+          "description": "The ten equalizer sliders, lowest band first (left to right).",
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": { "$ref": "#/$defs/ref" }
+        },
+        "rest": {
+          "description": "Where the cursor waits, in view px.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y"],
+          "properties": {
+            "x": { "type": "number", "minimum": 0, "maximum": 4096 },
+            "y": { "type": "number", "minimum": 0, "maximum": 4096 }
+          }
+        },
+        "toggle": { "$ref": "#/$defs/drawers" },
+        "isOpen": { "$ref": "#/$defs/drawers" }
+      }
+    }
+  }
+}

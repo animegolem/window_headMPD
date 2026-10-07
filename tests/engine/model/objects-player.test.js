@@ -609,7 +609,7 @@ describe('denied and inert APIs (acceptance 5)', () => {
     expect(t.counts()['player.constructor unknown-member']).toBe(2);   // case variants share an entry
   });
 
-  it('a property is not callable and a method is not assignable', () => {
+  it('a property called with arguments is not callable and a method is not assignable', () => {
     const t = makeGraph();
     expect(t.call('player.controls.currentPosition', [1])).toBeUndefined();
     t.write('player.controls.play', 5);

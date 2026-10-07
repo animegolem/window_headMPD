@@ -17,7 +17,6 @@ export const PINNED_FILES = Object.freeze([
   'src/demo.js',
   'src-tauri/tauri.conf.json',
   'src-tauri/src/lib.rs',
-  'src-tauri/src/clickthrough.rs',
   'tools/convert_skin.py',
 ]);
 

@@ -1,0 +1,41 @@
+{
+  "schema": "window_headmpd-sidecar/1",
+  "skin": "76a8662f469881bf5ed6eb93595042fdb188c65663135da6ff4dcd10b37bf85d",
+  "overlays": [
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 9, "top": 121, "width": 15, "value": "32", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 24, "top": 121, "width": 15, "value": "63", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 39, "top": 121, "width": 15, "value": "125", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 54, "top": 121, "width": 15, "value": "250", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 69, "top": 121, "width": 15, "value": "500", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 84, "top": 121, "width": 15, "value": "1K", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 99, "top": 121, "width": 15, "value": "2K", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 114, "top": 121, "width": 15, "value": "4K", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 129, "top": 121, "width": 15, "value": "8K", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } },
+    { "parent": "sEqView", "tag": "text", "attrs": { "left": 144, "top": 121, "width": 15, "value": "16K", "fontSize": 5, "foregroundColor": "#77CE07", "justification": "center" }, "hostStyle": { "letterSpacing": "-0.3px" } }
+  ],
+  "attrs": [
+    { "ref": "seek", "name": "x-foregroundMode", "value": "playhead" },
+    { "ref": "pl", "name": "backgroundColor", "value": "#285F03" },
+    { "ref": "pl", "name": "foregroundColor", "value": "#FFFFFF" },
+    { "ref": "pl", "name": "itemPlayingColor", "value": "#A9FF2B" },
+    { "ref": "pl", "name": "itemSelectedBackgroundColor", "value": "#1C4702" }
+  ],
+  "compat": { "attrs": [
+    { "ref": "Unnamed_text_4", "name": "top", "value": 129 },
+    { "ref": "Unnamed_text_1", "name": "fontSize", "value": 7 }
+  ] },
+  "actions": { "returnToMediaCenter": "zoomToggle" },
+  "restore": [
+    { "global": "eqIsOpen", "toggle": "ToggleEqView", "pref": "eqOpen" },
+    { "global": "plIsOpen", "toggle": "TogglePlView", "pref": "plOpen" }
+  ],
+  "viewResize": "ignore",
+  "tour": {
+    "transport": "Unnamed_buttongroup_2", "playColor": "#FFFF00", "visColor": "#0000FF",
+    "eqHandle": "bEqHandle", "plHandle": "bPlHandle", "visNext": "Unnamed_button_4", "reset": "Unnamed_text_4",
+    "bands": ["eq1", "eq2", "eq3", "eq4", "eq5", "eq6", "eq7", "eq8", "eq9", "eq10"],
+    "rest": { "x": 470, "y": 330 },
+    "toggle": { "eq": "ToggleEqView", "pl": "TogglePlView", "vis": "ToggleVisView" },
+    "isOpen": { "eq": "eqIsOpen", "pl": "plIsOpen", "vis": "visIsOpen" }
+  }
+}

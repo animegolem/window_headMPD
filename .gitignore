@@ -20,3 +20,4 @@ skins/
 # stray local output directory so art can never be staged by `git add -A`.
 .skinlab/
 tests/**/__out__/
+.vitest/

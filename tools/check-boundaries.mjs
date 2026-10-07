@@ -85,7 +85,7 @@ const SINK_EXEMPT = 'src/engine/realm/prelude.js';
 
 // Rule 5, relative to src/engine/. Directories match by prefix, files exactly.
 const PURE_DIRS = ['archive', 'text', 'wms', 'image/decode', 'realm', 'model', 'layout', 'bind', 'anim', 'shape'];
-const PURE_FILES = ['image/keying.js', 'image/probe.js', 'input/picker.js'];
+const PURE_FILES = ['image/keying.js', 'image/keyspec.js', 'image/probe.js', 'input/picker.js'];
 const DOM_GLOBAL = /\b(?:document|window)\b/g;
 
 // Specifier extraction. `d` gives the position of the specifier so a multi-line import reports the

@@ -1,0 +1,250 @@
+/* The playlist slot's look. Every rule is the hand port's (src/style.css, the drawer section and the
+   combo box, lines 206-368 of the pinned file), moved from ids to classes under one wrapper so two
+   playlists never collide and nothing leaks into the skin. Values are copied verbatim: S3 compares
+   this widget with the oracle pixel for pixel. The deltas are only these:
+     - the panel's background, the text colours and the item colours are custom properties on the
+       wrapper, set from the PLAYLIST element's attributes (playlist.js), each falling back to the
+       hand port's own colour;
+     - the Windows 2000 greys live here as properties, because :root of style.css is not loaded in
+       engine mode;
+     - the font, smoothing and cursor the page's body gave the oracle are set on the wrapper. */
+
+.wh-pl {
+  --wh-win-face: #d4d0c8;
+  --wh-win-light: #ffffff;
+  --wh-win-shadow: #808080;
+  --wh-win-dark: #404040;
+  --wh-win-select: #0a246a;
+  position: relative;
+  /* Keeps the menu's z-index (copied from the oracle) inside this widget. */
+  isolation: isolate;
+  background: var(--wh-pl-bg, #285f03);
+  font: 9px Tahoma, Verdana, sans-serif;
+  -webkit-font-smoothing: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+.wh-pl[hidden] {
+  display: none !important;
+}
+
+/* ---- list ---- */
+
+.wh-pl-list {
+  position: absolute;
+  left: 2px;
+  top: 22px;
+  right: 2px;
+  bottom: 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: var(--wh-pl-fg, #fff);
+}
+
+/* Not in the oracle: the header strip a skin gets with columnsVisible (the hand port has none). */
+.wh-pl-header {
+  position: absolute;
+  left: 2px;
+  top: 22px;
+  right: 2px;
+  height: 14px;
+  display: none;
+  line-height: 14px;
+  padding-left: 2px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--wh-pl-fg, #fff);
+  overflow: hidden;
+}
+
+.wh-pl-header .wh-pl-name {
+  flex: 1;
+}
+
+.wh-pl.has-header .wh-pl-header {
+  display: flex;
+}
+
+.wh-pl.no-combo .wh-pl-list,
+.wh-pl.no-combo .wh-pl-header {
+  top: 2px;
+}
+
+.wh-pl.has-header .wh-pl-list {
+  top: 36px;
+}
+
+.wh-pl.has-header.no-combo .wh-pl-list {
+  top: 16px;
+}
+
+.wh-pl.no-items .wh-pl-list,
+.wh-pl.no-items .wh-pl-header {
+  display: none;
+}
+
+.wh-pl-row {
+  display: flex;
+  height: 14px;
+  line-height: 14px;
+  padding-left: 2px;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.wh-pl-row .wh-pl-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wh-pl-row .wh-pl-time,
+.wh-pl-header .wh-pl-time {
+  padding: 0 3px 0 6px;
+}
+
+.wh-pl-row.is-sel {
+  background: var(--wh-pl-sel-bg, #1c4702);
+  color: var(--wh-pl-sel);
+}
+
+.wh-pl-row.is-now {
+  color: var(--wh-pl-now, #a9ff2b);
+}
+
+.wh-pl-empty {
+  color: var(--wh-pl-empty, #77ce07);
+  padding: 8px 4px;
+  font-size: 9px;
+}
+
+/* Windows 2000 scrollbar, because of course. */
+.wh-pl-list::-webkit-scrollbar {
+  width: 13px;
+}
+
+.wh-pl-list::-webkit-scrollbar-track {
+  background-color: #e9e7e3;
+  background-image: repeating-conic-gradient(var(--wh-win-face) 0 25%, #ffffff 0 50%);
+  background-size: 2px 2px;
+}
+
+.wh-pl-list::-webkit-scrollbar-thumb,
+.wh-pl-list::-webkit-scrollbar-button {
+  background-color: var(--wh-win-face);
+  box-shadow:
+    inset -1px -1px var(--wh-win-dark),
+    inset 1px 1px #e8e6e1,
+    inset -2px -2px var(--wh-win-shadow),
+    inset 2px 2px var(--wh-win-light);
+}
+
+.wh-pl-list::-webkit-scrollbar-button:single-button {
+  display: block;
+  height: 13px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.wh-pl-list::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M3.5 0 7 4H0z'/%3E%3C/svg%3E");
+}
+
+.wh-pl-list::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0h7L3.5 4z'/%3E%3C/svg%3E");
+}
+
+/* ---- Windows 2000 combo box for choosing a playlist ---- */
+
+.wh-pl-combo {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  right: 2px;
+  height: 18px;
+  box-sizing: border-box;
+  background: #fff;
+  box-shadow:
+    inset 1px 1px var(--wh-win-shadow),
+    inset -1px -1px var(--wh-win-light),
+    inset 2px 2px var(--wh-win-dark),
+    inset -2px -2px var(--wh-win-face);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  cursor: default;
+}
+
+.wh-pl.no-combo .wh-pl-combo {
+  display: none;
+}
+
+/* The oracle's `#skin img` (absolute, block, pixelated, undraggable) then `#skin #combo .icon`. */
+.wh-pl-combo .wh-pl-icon {
+  position: static;
+  display: block;
+  -webkit-user-drag: none;
+  image-rendering: pixelated;
+  width: 12px;
+  height: 12px;
+  margin: 0 3px 0 1px;
+  flex: none;
+}
+
+.wh-pl-combo .wh-pl-value {
+  flex: 1;
+  font-size: 11px;
+  line-height: 13px;
+  color: #fff;
+  background: var(--wh-win-select);
+  padding: 0 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wh-pl-combo .wh-pl-arrow {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-left: 1px;
+  background-color: var(--wh-win-face);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0h7L3.5 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow:
+    inset -1px -1px var(--wh-win-dark),
+    inset 1px 1px #e8e6e1,
+    inset -2px -2px var(--wh-win-shadow),
+    inset 2px 2px var(--wh-win-light);
+}
+
+.wh-pl-menu {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 20px;
+  max-height: 112px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #000;
+  z-index: 10;
+}
+
+.wh-pl-menu div {
+  font-size: 11px;
+  line-height: 14px;
+  padding: 0 3px;
+  color: #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wh-pl-menu div:hover {
+  background: var(--wh-win-select);
+  color: #fff;
+}

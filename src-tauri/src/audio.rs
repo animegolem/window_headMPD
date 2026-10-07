@@ -14,6 +14,7 @@
 
 use crate::eq::Eq;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use headcore::fanout::{Fanout, FrameSink};
 use rustfft::{num_complex::Complex, FftPlanner};
 use serde::Serialize;
 use std::collections::VecDeque;
@@ -47,6 +48,16 @@ pub struct Frame {
     pub level: f32,
 }
 
+/// A webview's frame channel as a fan-out sink. `Channel::send` only posts to the webview, so it
+/// fails only once the webview is gone; a reloaded page is dropped by label instead (`lib.rs`).
+pub struct ChannelSink(pub Channel<Frame>);
+
+impl FrameSink<Frame> for ChannelSink {
+    fn send(&self, frame: &Frame) -> Result<(), ()> {
+        self.0.send(frame.clone()).map_err(|_| ())
+    }
+}
+
 #[derive(Clone, Copy, Serialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
@@ -68,7 +79,9 @@ pub struct Engine {
     /// True while the output stream owns the ring. In monitor mode the
     /// reader feeds the analysis tap directly.
     playing_out: AtomicBool,
-    subscriber: Mutex<Option<Channel<Frame>>>,
+    /// Every subscribed webview gets every frame (E D11); the legacy single slot let a second
+    /// `Viz` steal the feed.
+    subscribers: Mutex<Fanout<Frame, ChannelSink>>,
     mode: Mutex<Mode>,
     /// Device sample rate, once the output stream is open.
     out_rate: AtomicU32,
@@ -82,8 +95,22 @@ impl Engine {
         *self.mode.lock().unwrap()
     }
 
-    pub fn subscribe(&self, ch: Channel<Frame>) {
-        *self.subscriber.lock().unwrap() = Some(ch);
+    /// Adds a subscriber for the window `label` and returns its id for `unsubscribe`. `pcm` is
+    /// recorded for phase 2; frames carry no PCM yet.
+    pub fn subscribe(&self, label: &str, ch: Channel<Frame>, pcm: bool) -> u64 {
+        self.subscribers
+            .lock()
+            .unwrap()
+            .subscribe(label, ChannelSink(ch), pcm)
+    }
+
+    pub fn unsubscribe(&self, id: u64) -> bool {
+        self.subscribers.lock().unwrap().unsubscribe(id)
+    }
+
+    /// Drops every subscriber of a destroyed or reloaded webview.
+    pub fn drop_label(&self, label: &str) -> usize {
+        self.subscribers.lock().unwrap().drop_label(label)
     }
 
     pub fn record_start(&self) -> Result<(), String> {
@@ -92,6 +119,12 @@ impl Engine {
         }
         *self.rec.lock().unwrap() = Some(Vec::with_capacity(48_000 * 2 * 60));
         Ok(())
+    }
+
+    /// Stop recording without writing anything (a refused `record_stop` path), so the buffer
+    /// does not keep growing.
+    pub fn record_cancel(&self) {
+        self.rec.lock().unwrap().take();
     }
 
     /// Stop recording and write a 16-bit stereo WAV.
@@ -144,7 +177,7 @@ pub fn start() -> (Arc<Engine>, Option<cpal::Stream>) {
         }),
         eq: Mutex::new(Eq::new(IN_RATE)),
         playing_out: AtomicBool::new(false),
-        subscriber: Mutex::new(None),
+        subscribers: Mutex::new(Fanout::new()),
         mode: Mutex::new(Mode::Monitor),
         out_rate: AtomicU32::new(0),
         rec: Mutex::new(None),
@@ -412,17 +445,16 @@ fn analysis(engine: Arc<Engine>) {
         let wave: Vec<f32> = tail.chunks(2).map(|c| round3(c[0])).collect();
         let level = (snapshot.iter().map(|s| s * s).sum::<f32>() / FFT_SIZE as f32).sqrt();
 
-        let ch = engine.subscriber.lock().unwrap().clone();
-        if let Some(ch) = ch {
+        let mut subs = engine.subscribers.lock().unwrap();
+        if !subs.is_empty() {
             let frame = Frame {
                 bands: smooth.iter().map(|v| round3(*v)).collect(),
                 wave,
                 level: round3(level),
             };
-            if ch.send(frame).is_err() {
-                *engine.subscriber.lock().unwrap() = None;
-            }
+            subs.send_all(&frame);
         }
+        drop(subs);
         if let Some(rest) = frame_time.checked_sub(t0.elapsed()) {
             std::thread::sleep(rest);
         }

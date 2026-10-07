@@ -9,7 +9,8 @@
 //    invalid value keeps the previous one, U-20) and reports whether anything changed;
 //  - the dirty set (`takeDirty`) the renderer drains once a frame;
 //  - the `<attr>_onchange` queue (`takeQueuedEvents`), FIFO, filled by every change except origin
-//    'init' and only for an element that has such a handler;
+//    'init' and 'quiet' and only for an element that has such a handler ('quiet' is a post-load
+//    write that updates the element and whoever follows it but is not news to the realm);
 //  - the id indexes (exact, then case-folded), which are Maps because ids are skin text and
 //    `__proto__` and `constructor` are ordinary ids (E §1 rule 6);
 //  - the paint-order cache, dropped for one parent when a child's z changes.
@@ -185,7 +186,7 @@ class Element {
     if (!marks) state.dirty.set(this, (marks = new Set()));
     marks.add(key);
 
-    if (origin !== 'init') {
+    if (origin !== 'init' && origin !== 'quiet') {
       const event = `${key}_onchange`;
       if (this.handlers.has(event)) {
         if (state.queue.length < MAX_QUEUED_EVENTS) state.queue.push({ el: this, event });

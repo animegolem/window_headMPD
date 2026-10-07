@@ -87,7 +87,10 @@ export type CoerceFn = (type: AttrType, v: unknown, prev: unknown) => unknown;  
 // ---------------------------------------------------------------------------------------------
 // 5.3 Element model
 
-export type Origin = 'init' | 'layout' | 'script' | 'binding' | 'user' | 'anim' | 'host' | 'sidecar';
+// G3: 'quiet' is a post-load write that updates the element (renderer, followers) but queues no
+// <attr>_onchange: bindings use it for per-frame host values (the seek thumb at 60 Hz) between the
+// realm-rate ticks, and followers inherit the quietness of the write that moved their source.
+export type Origin = 'init' | 'layout' | 'script' | 'binding' | 'user' | 'anim' | 'host' | 'sidecar' | 'quiet';
 export type AttrValue = string | number | boolean | null;
 export interface HandlerSite { event: string; source: string; params: string[]; line: number }
 export interface ElementModel {
@@ -99,7 +102,7 @@ export interface ElementModel {
   readonly children: readonly ElementModel[];
   readonly docIndex: number;
   get(attr: string): AttrValue;                             // attr case-insensitive
-  set(attr: string, v: unknown, origin: Origin): boolean;   // coerces; true if changed; queues <attr>_onchange unless origin 'init'
+  set(attr: string, v: unknown, origin: Origin): boolean;   // coerces; true if changed; queues <attr>_onchange unless origin 'init' or 'quiet'
   source(attr: string): AttrSource | undefined;
   readonly handlers: ReadonlyMap<string, HandlerSite>;      // lowercased event name
 }
@@ -464,26 +467,43 @@ export type PaintOrderFn = (container: ElementModel, opts: { stacking: 'context'
 export type ParsePathFn = (src: string) => BindPath | null;
 export interface BindingEngine { install(): void; suspend(el: ElementModel, attr: string): void; resume(el: ElementModel, attr: string): void;
   frame(now: number): void; dispose(): void }
-export type CreateBindingsFn = (view: ViewModel, graph: ObjectGraph, clock: EngineClock, opts: { realmTickHz: number }) => BindingEngine;
+export type CreateBindingsFn = (view: ViewModel, graph: ObjectGraph, clock: EngineClock, opts: { realmTickHz: number; ledger?: Ledger }) => BindingEngine;   // G3: ledger
 // anim/
 export interface Animator { moveTo(el: ElementModel, x: number, y: number, ms: number, ease: 'linear' | 'inout', w?: number, h?: number): void;
   alphaBlendTo(el: ElementModel, a: number, ms: number): void; cancel(el: ElementModel): void; frame(now: number): void; running(): number }
 export type CreateAnimatorFn = (clock: EngineClock, fire: (el: ElementModel, event: 'onendmove' | 'onendalphablend') => void) => Animator;
 // render/
-export interface Renderer { mount(view: ViewModel): void; frame(dirty: Map<ElementModel, Set<string>>): void;
-  nodeOf(el: ElementModel): HTMLElement | undefined; slotOf(el: ElementModel): SlotHandle | undefined; dispose(): void }
-export type CreateRendererFn = (root: HTMLElement, images: ImageService, slots: SlotProvider, win: SkinWindow, opts: EngineOptions) => Renderer;
+// G3: the pointer's visual state (hover/press), which is not in the model. For a BUTTONGROUP the target
+// is the BUTTONELEMENT and part its index (the picker's shape).
+export interface PointerTarget { el: ElementModel; part?: number | null }
+export interface Renderer { mount(view: ViewModel): void; frame(dirty: Map<ElementModel, Set<string>>, now?: number): void;
+  nodeOf(el: ElementModel): HTMLElement | undefined; slotOf(el: ElementModel): SlotHandle | undefined; dispose(): void;
+  readonly plane: HTMLElement | null;                       // G3: div.input, for attachInput
+  readonly windowed: HTMLElement | null;                    // G3: div.windowed, native-child-window widgets
+  setPointer(over: PointerTarget | null, pressed: PointerTarget | null): void }   // G3
+export type CreateRendererFn = (root: HTMLElement, images: ImageService, slots: SlotProvider, win: SkinWindow, opts: EngineOptions,
+  extras?: { clock?: EngineClock; log?: Log }) => Renderer;   // G3: extras
 // input/
 export type PickRole = 'control' | 'blocked' | 'effects' | 'widget' | 'chrome';
+// G3: for a BUTTONGROUP, el is the owning BUTTONELEMENT, part its index among the group's BUTTONELEMENT
+// children, and local is relative to the GROUP's top-left; enabled=false on the element or the group
+// makes the pick 'blocked'. A SLIDER/PROGRESSBAR with no thumbImage and no mouse handler is 'chrome'.
 export interface Pick { el: ElementModel; part: number | null; role: PickRole; local: { x: number; y: number } }
 export type PickFn = (view: ViewModel, images: ImageService, slotRects: (el: ElementModel) => Rect[], x: number, y: number, opts: EngineOptions) => Pick | null;
 export interface InputSink { gesture(el: ElementModel, event: string, init: EventInit, part: number | null): void;
-  key(event: 'onkeydown' | 'onkeypress' | 'onkeyup', init: EventInit): boolean;   // true if a skin handler ran
+  key(event: 'onkeydown' | 'onkeypress' | 'onkeyup', init: EventInit): boolean;   // true if a skin handler ran. G3: runs only
+  // init.srcElement's own handler, never bubbles (dispatch calls it for the focused element, then the VIEW).
+  // keyCode: Windows VK for keydown/keyup, the character code for keypress (spec 5.7).
   dragSlider(el: ElementModel, phase: 'begin' | 'move' | 'end', value: number): void }
+// G3: deps.thumbExtent gives a slider thumb's length along its axis in skin px (W4.1 computes it from
+// the shared slider geometry and the image probe). A press the skin handled (right press, keys) is
+// reported by preventDefault() on the DOM event; the shell's menu and keys check defaultPrevented.
 export type AttachInputFn = (plane: HTMLElement, view: ViewModel, pickAt: (x: number, y: number) => Pick | null,
-  win: SkinWindow, sink: InputSink, opts: EngineOptions) => Unsubscribe;
+  win: SkinWindow, sink: InputSink, opts: EngineOptions, deps?: { thumbExtent(el: ElementModel): number }) => Unsubscribe;
 // shape/
 export type RasterizeShapeFn = (view: ViewModel, images: ImageService, slotRects: (el: ElementModel) => Rect[], opts: EngineOptions) => MaskShape;
+export type RasterizeShapeWithDiagnosticsFn = (view: ViewModel, images: ImageService, slotRects: (el: ElementModel) => Rect[], opts: EngineOptions,
+  extra?: object) => { shape: MaskShape; diagnostics: Diagnostic[] };   // G3: the popcount < 64 fallback diagnostic
 
 // ---------------------------------------------------------------------------------------------
 // Tooling shim, not a contract. tsconfig.check.json keeps `skipLibCheck` off so that an error in

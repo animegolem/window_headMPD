@@ -7,7 +7,7 @@ import { PINNED_FILES, oraclePin, pinDigests } from '../../tools/skinlab/pins.mj
 
 let root;
 
-/** A tree with all eleven pinned files, each with its own content. */
+/** A tree with all ten pinned files, each with its own content. */
 function makeTree() {
   const dir = mkdtempSync(path.join(tmpdir(), 'skinlab-pins-'));
   PINNED_FILES.forEach((f, i) => {
@@ -23,7 +23,7 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('PINNED_FILES', () => {
-  it('is the eleven files of parity line 18, in that order', () => {
+  it('is the ten files of parity line 18 minus clickthrough.rs (G3), in that order', () => {
     expect([...PINNED_FILES]).toEqual([
       'src/main.js',
       'src/widgets.js',
@@ -34,7 +34,6 @@ describe('PINNED_FILES', () => {
       'src/demo.js',
       'src-tauri/tauri.conf.json',
       'src-tauri/src/lib.rs',
-      'src-tauri/src/clickthrough.rs',
       'tools/convert_skin.py',
     ]);
     expect(Object.isFrozen(PINNED_FILES)).toBe(true);

@@ -922,6 +922,57 @@ All tasks run in parallel. W3.R is Opus.
 
 ### Gate G3 · O
 
+*G3 rulings (2026-10-07).* Contracts (additive): Origin `'quiet'` (applied, updates the element and
+its followers, queues no `_onchange`; followers inherit the quietness of the write that moved their
+source); `CreateBindingsFn` opts `ledger`; `Renderer` gains `frame(dirty, now?)`, `plane`,
+`windowed`, `setPointer(over, pressed)` and `PointerTarget`; `CreateRendererFn` takes
+`extras {clock, log}`; `AttachInputFn` takes `deps.thumbExtent(el)` (W4.1 supplies it from the
+shared slider geometry and the image probe); `RasterizeShapeWithDiagnosticsFn`; the BUTTONGROUP
+`Pick` shape (el = BUTTONELEMENT, part = index, local from the group's origin) and the thumbless
+slider = `chrome` rule are documented on `Pick`. Input: a press or key the skin handled is reported
+by `preventDefault()` on the DOM event (the shell checks `defaultPrevented`, E D10.1/D10.5);
+`InputSink.key` runs only `init.srcElement`'s handler, never bubbles; `keypress` carries the
+character code, keydown/keyup the VK (spec 5.7; the corpus only tests 32 and 13, equal in both).
+Layout: attributes inside one element evaluate in attribute-table order (corpus: order matters in 0
+elements); `recordAnchors` records the size each container's children were placed for (E D5 reworded).
+Animator: `cancel(el)` stops both channels; a 0 ms tween fires on the next frame, so W4.1's
+`settled()` waits one frame. JScript property-as-method: calling a host property with `()` returns
+its value (IDispatch; `mediacenter.effectType()`, 28 corpus `jscript:` faults). W3.R's judgment calls
+ratified (CR/LF/NUL refusal on `mpd` args and `palette`, label cleanup on page load, `Result` returns,
+1,024 regions / 8,192 coordinate caps, optional stores). Smoke additions for the in-app gate: two Viz
+subscribers, reload and close with no hang (fan-out lock); viz-host dispose leaks one fan-out
+subscriber per skin reload until W4.3 unsubscribes it. Fix-ups G3.F1–G3.F6 (G3.F3 first):
+
+#### G3.F3 Shared slider geometry and key specs · S · S
+- **Owns**: `src/engine/render/dom/{keyspec,slider-geometry}.js` (W3.4), `src/engine/shape/scene.js` (W3.5), new `src/engine/image/keyspec.js` and `src/engine/layout/slider-geometry.js`, and their tests.
+- **Do**: move the rule sets into the two new pure modules (no `document`/`window`); `render/dom/{keyspec,slider-geometry}.js` re-export them; `shape/scene.js` imports them and drops its private copies (keySpecOf/transparencyOf/clippingOf, thumb geometry). Behaviour must not change: every existing render, shape and picker test passes unchanged, and `npm test -- tests/headspace/picker` still matches the legacy S1 mask.
+- **Acceptance**: `npm test -- tests/engine/render tests/engine/shape tests/engine/input/picker tests/headspace`, `npm run skinlab -- fixtures --area render`, `npm run check`.
+
+#### G3.F1 Bindings: quiet origin, typed ledger, follower coalescing · S · S
+- **Owns**: W3.2's files (`src/engine/bind/**`, `tests/engine/bind/**`) and `src/engine/model/elements.js` (one change: `'quiet'` queues no `_onchange`, like `'init'`).
+- **Do**: post-load quiet writes use `'quiet'` (never `'init'`); drop the `BindingOptions` cast and read `opts.ledger`; a follower binding whose source moved by a quiet write applies quietly; re-resolution does not re-count `stub` ledger entries (count once per binding). Test the reviewer's case: `<SLIDER id=seek value='wmpprop:player.controls.currentPosition' value_onchange=a()/>` + `<TEXT id=t value='wmpprop:seek.value' value_onchange=b()/>` → over 1,000 ms at 60 Hz, `t.value_onchange` ≤ 10 and `seek.value_onchange` ≤ 10, while `t.value` tracks every frame.
+- **Acceptance**: `npm test -- tests/engine/bind tests/engine/model`, `npm run check`.
+
+#### G3.F2 Input: contract deps, real pick shape, keypress codes · S · S
+- **Owns**: W3.6's files (`src/engine/input/dispatch.js`, `tests/engine/input/dispatch*`).
+- **Do**: type the seventh argument with the contract's `deps`; `sliderValueAt` imports `layout/slider-geometry.js` (from G3.F3) instead of its own formula; the W3.6 reviewer's BUTTONGROUP test with the real picker's `Pick` shape (items 1-5) and the header update; `keypress` delivers the character code (keydown/keyup keep the VK).
+- **Acceptance**: `npm test -- tests/engine/input`, `npm run check`.
+
+#### G3.F4 Object model: property called as a method · S · S
+- **Owns**: W2.3's files (`src/engine/model/objects/**`, `tests/engine/model/objects*`).
+- **Do**: `HostObject.call(member, [])` on a property member returns the property's value (JScript IDispatch); with arguments it stays an error. Test `mediacenter.effectType()`, `player.controls.currentPosition()`; then `npm run corpus -- layout` shows 0 TypeErrors of the `effectType()`/`effectPreset()` kind (the 2 Jordan ReferenceErrors stay).
+- **Acceptance**: `npm test -- tests/engine/model`, `npm run corpus -- layout`, `npm run check`.
+
+#### G3.F5 Headspace sidecar: playlist colours · S · S
+- **Owns**: W3.8's files (`src/app/sidecars/*.json`, `src/app/sidecar*.js`, `tests/app/sidecar*`).
+- **Do**: the Headspace sidecar `attrs` (both configs) set the PLAYLIST colours the oracle paints (`playlist.css`: playing row `#a9ff2b`, selected background `#1c4702`, text `#fff`, background `#285f03`), so the W3.7 widget, which receives WMP defaults, matches parity S3/S3b. Notice colour fallback is the first TEXT with a declared `foregroundColor` (document in the sidecar module). Tests.
+- **Acceptance**: `npm test -- tests/app/sidecar`, `npm run check`.
+
+#### G3.F6 Re-pin completion · O · S
+- **Owns**: `src-tauri/src/clickthrough.rs` (delete), `tools/skinlab/pins.mjs`, `tests/skinlab/pins.test.js`, `tools/skinlab/goldens.manifest.json`, and in `docs/design/ENGINE.md` only §1 rule 8 and Appendix A.
+- **Do**: the W3.R reviewer's steps 1-7 (drop clickthrough.rs from PINNED_FILES and the test's list, edit §1 rule 8, delete the file, back up the manifest, `bless --target legacy --repin --reason "W3.R re-pin (clickthrough.rs removed)"`, check all 42 slots equal and chained, record the new oraclePin and digests in Appendix A).
+- **Acceptance**: `cargo build` and `cargo test` in `src-tauri`, `npm run skinlab -- verify-legacy` (twice), `npx vitest run --project unit tests/skinlab`, `npm run check`.
+
 - Review every engine module against its ENGINE.md section; confirm `tsc --checkJs` covers them all.
 - Confirm the sidecar refs resolve on the built model (`inspector` does not exist yet; use
   `ViewModel.byId` in a one-off test).

@@ -1,0 +1,88 @@
+/* The effects slot's host surface: the visualizer canvas and the three overlays that sit over it (ENGINE
+   D10.3). The overlay rules are the hand port's (src/style.css lines 137-188 of the pinned file), moved
+   from ids to classes under `.wh-fx` and otherwise copied verbatim, so the toast, notice and caption
+   land on the same pixels as the oracle's. The deltas are only these:
+     - the notice colour is a custom property, `--wh-notice`, set by overlays.js from the sidecar or the
+       skin's first TEXT colour; it falls back to the hand port's `--label`;
+     - `.wh-fx` stands in for the oracle's `#screen` (positioned, clipping) and carries the font, smoothing
+       and cursor the page's body gave it;
+     - `.hidden` is the class Viz toggles on its caption (viz/index.js setCaption), scoped here because
+       style.css is not loaded in engine mode;
+     - the canvas rule is `#skin img, #skin canvas` followed by `#skin #viz` of the oracle. The mask the
+       oracle put on the canvas is not here: the engine clips the whole subview (ENGINE D2, parity D26). */
+
+.wh-fx {
+  position: relative;
+  overflow: hidden;
+  font: 9px Tahoma, Verdana, sans-serif;
+  -webkit-font-smoothing: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+.wh-fx .hidden {
+  display: none !important;
+}
+
+.wh-fx .wh-fx-viz {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  -webkit-user-drag: none;
+  image-rendering: auto;
+}
+
+.wh-fx .wh-toast {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  color: #fff;
+  font: bold 10px Tahoma, Verdana, sans-serif;
+  text-shadow: 1px 1px 0 #000;
+  opacity: 0;
+  transition: opacity 600ms;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wh-fx .wh-toast .artist {
+  font-weight: normal;
+  opacity: 0.85;
+}
+
+.wh-fx .wh-toast.show {
+  opacity: 1;
+}
+
+.wh-fx .wh-notice {
+  position: absolute;
+  inset: 22px 14px;
+  color: var(--wh-notice, #77ce07);
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Subtitle strip, like the one under anthrupad's video. */
+.wh-fx .wh-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  background: rgba(200, 200, 200, 0.92);
+  color: #111;
+  font: 15px/18px Helvetica, Arial, sans-serif;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
