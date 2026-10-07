@@ -1,0 +1,42 @@
+Archive reader over the corpus: numbers only (WAVES W1.1, ENGINE D4).
+Regenerate with: npm run corpus -- zip
+
+wmp archives: 342
+wmp archives opened: 342
+wmp distinct SHA-256: 195
+wmp SHA-256 differing from tests/corpus.manifest.json: 0
+wmp central directory entries: 29255
+wmp directory entries (dropped silently): 1
+wmp entries exposed: 29244
+wmp entries skipped with a diagnostic: 10
+wmp   zip-junk: 10
+wmp local headers salvaged: 6
+wmp case collisions resolved last-wins: 0
+wmp exposed entries that read as null: 0
+wmp CRC mismatches: 0
+wmp largest central directory (entries): 303
+wmp largest entry (bytes): 2122420
+wmp highest ratio of an entry over 1 MiB (to 1): 126
+wmp largest archive inflated (bytes): 7141576
+wmp total inflated and read (bytes): 477661614
+
+wsz archives: 30
+wsz archives opened: 30
+wsz distinct SHA-256: 30
+wsz SHA-256 differing from tests/corpus.manifest.json: 0
+wsz central directory entries: 937
+wsz directory entries (dropped silently): 8
+wsz entries exposed: 929
+wsz entries skipped with a diagnostic: 0
+wsz local headers salvaged: 0
+wsz case collisions resolved last-wins: 24
+wsz exposed entries that read as null: 0
+wsz CRC mismatches: 0
+wsz largest central directory (entries): 85
+wsz largest entry (bytes): 1286766
+wsz highest ratio of an entry over 1 MiB (to 1): 130
+wsz largest archive inflated (bytes): 4958956
+wsz total inflated and read (bytes): 32039123
+
+corrupt-header archives (wmp) salvaged with every entry read: 6
+sc.wms readable in the SplinterCell archives: 2

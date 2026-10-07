@@ -407,6 +407,73 @@ All tasks run in parallel.
 
 ### Gate G1 · O
 
+*G1 rulings (2026-10-06).* Contracts gained (all additive): `ArchiveError`; `AttrSpecForFn`,
+`ClassifyValueDiagFn`, `ParseBindPathFn` (§5.2); `DecodeImageWithDiagnosticsFn` and
+`KeyedPlanes.diagnostics`, the clip-bit sense (§5.4); `MediaState.queuePos` (§5.6);
+`maxStackBytes` 256 KiB; the wmploc helper types (§5.5). Consumers: W2.1's builder and
+`ElementModel.set` call `attrSpecFor` and `classifyValueDiag`; W2.4's executors call
+`decodeImageWithDiagnostics` and W2.4 owns the RT_IMAGE/RT_BITMAP transparent fallback (wmploc 5.5);
+W3.2's `parsePath` delegates to `wms/values.js` `parseBindPath` (one grammar) and adds its caps;
+W4.2's `hit_set_bits` body is little-endian (`u32 w, u32 h, f64 zoom`, then the bits LSB-first,
+row-major), as W1.7 pinned. RG0 items 1–6 pass; item 7's 7 call-assignment scripts and the slow-builtin
+latency gap are ruled in W2.2 items 10–11 (E R19, R20). Ratified as implemented: darkseagreen
+0x8FBC8F (the MS page's 8FBC8B is a typo against every other source); `res://` accepted on image as
+well as string attributes (9SeriesDefault); scanner folds attribute names ASCII-only and keeps the
+first position with the last value; `sprintf` treats `$` patterns literally; alpha-0 pixels are never
+keyed. Fix-ups G1.F1–G1.F6 below (all passed). Known limit of the test host: its fake
+`MediaModel` commands do not move `queuePos`; parity states use presets only, and any later test that
+needs it extends `src/hosts/test/media.js`.
+
+#### G1.F1 Image fix-ups · S · S
+- **Owns**: W1.3's files (`src/engine/image/**`, `tests/engine/image/**`, `tests/headspace/keying.test.js`, `tests/corpus/images.test.js`).
+- **Do**: (1) RLE decode that reaches the end of the stream on a command boundary, without end-of-bitmap,
+  while rows remain, logs the same truncation diagnostic as a mid-command cut (E D3); fix the test at
+  `tests/engine/image/bmp.test.js` that pins `[]`. (2) jpeg-js `maxResolutionInMP` becomes 16.78 so the
+  16,777,216 px area cap is the one authority (probe and decode agree); update `jpeg.test.js`.
+  (3) Annotate `decodeImageWithDiagnostics` with `DecodeImageWithDiagnosticsFn`; when keying produces
+  warnings, put them on `KeyedPlanes.diagnostics`.
+- **Acceptance**: `npm test -- tests/engine/image tests/headspace/keying`, `npm run corpus -- images`, `npm run check` (exit 0 except the known `src/hosts/test/media.js` queuePos error until G1.F3 lands).
+
+#### G1.F2 Attribute-table fix-ups · S · S
+- **Owns**: W1.6's files (`src/engine/wms/{values,tags,attrs}.js`, their tests).
+- **Do**: the reviewer's PLAYLIST/AUTOMENU fix: PLAYLIST drops zIndex, clippingImage, clippingColor,
+  passThrough, alphaBlend and the mouse/key/click handlers (spec 5.6, 6.13; keeps onfocus, onblur,
+  onresize, onendmove, onendalphablend and `<attr>_onchange`); AUTOMENU keeps only id, left, top,
+  visible (default false), elementType and no ambient events (spec 6.18), with tests. Annotate
+  `attrSpecFor`, `classifyValueDiag` and `parseBindPath` with `AttrSpecForFn`, `ClassifyValueDiagFn`,
+  `ParseBindPathFn`.
+- **Acceptance**: `npm test -- tests/engine/wms/values tests/engine/wms/tags tests/engine/wms/attrs`, `npm run check` (same exception as F1).
+
+#### G1.F3 Test-host queuePos · S · S
+- **Owns**: W1.10's files (`src/hosts/test/**`, `tests/hosts/test/**`).
+- **Do**: fill `MediaState.queuePos` from the preset's wire `status.song` (number, or null when absent);
+  `song` stays null when `currentsong` is empty. Tests: `stoppedQueue5` has `queuePos` 1 and `song`
+  null; `stoppedEmpty` has null; `emit` can change it.
+- **Acceptance**: `npm test -- tests/hosts/test`, `npm run check` exits 0.
+
+#### G1.F4 wmploc fix-ups · S · S
+- **Owns**: W1.5's files (`src/engine/realm/wmploc.js`, `tests/engine/realm/wmploc.test.js`).
+- **Do**: add string #2091 `"%1 / %2"` to the table (wmploc 7.6); annotate `parseScriptFile`,
+  `scriptLibrary`, `lookupString`, `resolveStringAttribute` with the new §5.5 contract types and make
+  the local typedefs import them instead of redefining them.
+- **Acceptance**: `npm test -- tests/engine/realm/wmploc`, `npm run check` (same exception as F1).
+
+#### G1.F5 Archive fix-ups · S · S
+- **Owns**: W1.1's files (`src/engine/archive/**`, `tests/engine/archive/**`, `tests/corpus/zip.test.js`, `docs/coverage/corpus-zip.txt`).
+- **Do**: skip, with a diagnostic, any entry whose folded basename is `''` or `.`; make the
+  `.DS_Store` skip case-insensitive like the others; type `ArchiveError` against the contract's
+  `ArchiveError` interface. Tests for each.
+- **Acceptance**: `npm test -- tests/engine/archive`, `npm run corpus -- zip` (counts unchanged), `npm run check` (same exception as F1).
+
+#### G1.F6 Realm-gate expectations · S · S
+- **Owns**: W1.4's files (`tests/realm-gate/**`, `tests/corpus/realm-gate.test.js`).
+- **Do**: RG0 item 7's script case asserts the exact pinned list of the 7 call-assignment failures
+  (sorted, by archive and file) instead of `[]`, with a comment pointing at W2.2 item 10, which flips it
+  to 219/219. Set the gate's stack cap constant to the contracted 256 KiB if it differs, and add a
+  case documenting that a 1 MiB cap lets recursion escape WASM as a host `RangeError` (skip it if it is
+  flaky on this host; record the measured threshold in the test's comment).
+- **Acceptance**: `npm test -- tests/realm-gate`, `npm run corpus -- realm-gate` exits 0, `npm run check` (same exception as F1).
+
 - RG0 sign-off (W1.4): mechanism chosen, E D1 amended if needed.
 - wmploc string wording review.
 - Review corpus counts against `survey`; any mismatch is explained or turned into a fix before wave 2.
@@ -468,7 +535,7 @@ All tasks run in parallel.
   3. `this` is the element; PLAYER parameters are visible in exact case only; `jscript:` with a
      trailing `;` returns its value; a handler starting `jscript:` compiles; `eval("eq"+i+".left=5")`
      writes through; `a = b.visible = false` works.
-  4. Budgets: `while(1){}` in a handler is a hard fault within 100 ms + 10 ms; a 200 MB allocation is
+  4. Budgets: `while(1){}` in a handler is a hard fault within 100 ms + 50 ms (10 ms when the file runs alone; G1: parallel test files add scheduler noise); a 200 MB allocation is
      an OOM; three hard faults in 30 s unload; after unload a new realm in the same process works; the
      budget still fires when the engine clock is frozen.
   5. Duty cycle: 64 timers at the 10 ms floor each burning 9 ms trigger the throttle within 5 s of
@@ -480,6 +547,22 @@ All tasks run in parallel.
   7. Timers: string and function forms on the manual clock; the 65th timer is refused; `inGesture` is
      true only inside `runHandler(..., {gesture: true})`.
   8. Leak check: after 1,000 dispatches the runtime's object count returns to its baseline.
+- **G1 additions (rulings from RG0):**
+  9. `maxStackBytes` 256 KiB; a host `RangeError` (or any non-realm exception) escaping the WASM
+     call is a **hard fault** and the instance is discarded (never disposed).
+  10. **Call-assignment rewrite** (E R20): `loadScript` compiles; on `SyntaxError` "invalid assignment
+      left-hand side" at line L, rewrite the one offending `<call> = <rhs>` statement on L into
+      `__wmp_badAssign()` (a prelude function that throws `TypeError('Cannot assign to a function
+      result')`), retry, at most 32 rewrites per file, each a `script-rewrite` diagnostic; any other
+      syntax error loses the file as before. Test: synthetic `eq.gainLevels(b) = v;` and
+      `theme.savePreference('x')='--';` files load, their functions are callable, and the rewritten
+      statement throws at run time; `npm run corpus -- realm-gate` then shows 219/219 scripts load
+      (update its expectation from the pinned 7-name list).
+  11. **Slow-builtin guards** (E R19): the prelude wraps the listed builtins (non-writable,
+      non-configurable replacements installed before any skin code) with a cheap host check that
+      throws once the current dispatch is over budget. Test: `for(;;){try{'y'.repeat(1e5)}catch(e){}}`
+      and `for(;;){s.indexOf('b')}` over a 16 MiB string end as hard faults within budget + 300 ms;
+      flip RG0's pinned latency test (`tests/realm-gate`) to assert the bound instead of the gap.
 - **Deps**: W1.4 (signed off), W1.5.
 
 ### W2.3 Object model, policies, ledger · S · L

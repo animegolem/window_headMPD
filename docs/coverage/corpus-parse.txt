@@ -1,0 +1,28 @@
+# corpus-parse: numbers from `npm run corpus -- parse` (tests/corpus/parse.test.js). No names, no art.
+# distinct = one definition .wms per distinct archive SHA-256; raw = one per archive file.
+wmp_archives 342
+wmp_distinct 195
+distinct_definition_files 195
+distinct_theme_root_with_view 195
+distinct_all_wms_files 197
+distinct_all_wms_theme_root_with_view 197
+distinct encoding ascii 27
+distinct encoding cp1252 86
+distinct encoding utf-16le 72
+distinct encoding utf-8 10
+distinct diagnostic duplicate-attribute 67
+distinct diagnostic duplicate-attribute-case 8
+distinct diagnostic end-tag-case 12
+distinct diagnostic junk-after-root 1
+distinct diagnostic missing-whitespace 22
+raw_definition_files 342
+raw_theme_root_with_view 342
+raw encoding ascii 44
+raw encoding cp1252 159
+raw encoding utf-16le 120
+raw encoding utf-8 19
+raw diagnostic duplicate-attribute 123
+raw diagnostic duplicate-attribute-case 16
+raw diagnostic end-tag-case 19
+raw diagnostic junk-after-root 1
+raw diagnostic missing-whitespace 39

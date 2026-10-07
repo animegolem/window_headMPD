@@ -523,7 +523,7 @@ decoding runs in a Worker in the app and inline in Node.
 | BMP | Own, about 400 lines. Headers 12 (OS/2), 40, 52, 56, 108, 124 bytes. Bottom-up and top-down. 1/4/8/16/24/32 bpp. BI_RGB, BI_RLE8, BI_RLE4 (end-of-line, end-of-bitmap, delta, absolute runs with word padding), BI_BITFIELDS. **16-bit BI_RGB is X1R5G5B5** (the format definition; settles `wsz 3.1`'s ImageIO-vs-PIL split by spec, not by either decoder). **Alpha is forced to 255** for every BMP (GDI and Winamp ignore it; 28 of 29 32-bit Winamp sheets have all-zero alpha, `wsz 3.1`); a non-zero alpha channel logs one diagnostic. A palette shorter than 2^bpp is accepted. Truncated or out-of-range RLE stops that image: decoded rows stay, the rest is transparent, one diagnostic. 8-bit images also return `{palette, indices}` for phase-3 `hueShift`/`saturation` (cand-F). | WMP referenced: 24 bpp 2,902, 8 bpp 587, 4 bpp 66, 1 bpp 3; RLE in 15/195 skins (`survey 3.3`). Winamp: RLE8 in 12% incl. base-2.91 (`wsz 1.3`). |
 | PNG | Own chunk parser (IHDR, PLTE, tRNS, IDAT, IEND; others ignored), `fflate@0.8.3` `inflateSync` **into a buffer of exactly the size IHDR implies** (overflow marks the image corrupt), own unfilter; all colour types and bit depths (16-bit scaled down), Adam7. No gAMA/iCCP application (GDI did not apply it; colour management could move `#FF00FF` off its key). | Alpha PNG in 61/195 skins, tRNS in 43 (`survey 3.3`) |
 | GIF | Own LZW decoder, about 250 lines: frames, disposal, transparency index, NETSCAPE loop; frame cap. Phase 1 renders frame 0; phase 3 animates. | 1,569 multi-frame GIFs, max 145 frames |
-| JPEG | `jpeg-js@0.4.4` (BSD-3-Clause), called with `maxResolutionInMP: 16`, `maxMemoryUsageInMB: 256`, `useTArray: true`, after our own SOF header probe has checked the axis and area caps. | 450 referenced JPGs in 66 skins |
+| JPEG | `jpeg-js@0.4.4` (BSD-3-Clause), called with `maxResolutionInMP 16.78`, `maxMemoryUsageInMB: 256`, `useTArray: true`, after our own SOF header probe has checked the axis and area caps. | 450 referenced JPGs in 66 skins |
 | Detection | Magic bytes only; the extension is ignored. | `Nautical` `vol_slider.bmp` is a GIF, `drawer.bmp` a JPEG (G7) |
 
 **Why not the browser decoders.** (1) The harness is Chromium and the app is WKWebView; browser
@@ -1475,7 +1475,7 @@ export interface RealmBudgets { scripts: number; load: number; handler: number; 
 export interface RealmOptions {
   viewKey: string;
   memoryLimitBytes: number;                                 // 64 MiB
-  maxStackBytes: number;                                    // 1 MiB
+  maxStackBytes: number;                                    // 256 KiB (G1)
   budgets: RealmBudgets;                                    // 2000, 1000, 100, 20, 1000 ms
   wallClock: () => number;                                  // real performance.now, captured at module load
   dispatcher: HostDispatcher;
@@ -1936,7 +1936,7 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 | | GIF frames | 512 | max 145 |
 | | live decoded per skin | 256 MiB, LRU | |
 | | decode wall time | 2 s, then Worker terminate | |
-| | JPEG | `maxResolutionInMP` 16, `maxMemoryUsageInMB` 256 | |
+| | JPEG | `maxResolutionInMP` 16.78, `maxMemoryUsageInMB` 256 | |
 | `.wms` | text | 4 MiB | max 189 KB (`survey 6`, R9) |
 | | elements per THEME | 20,000 | R9 has 556 elements in the main file |
 | | nesting depth | 64 | |
@@ -1944,7 +1944,7 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 | | VIEWs | 64 | max 9 |
 | | view size per axis | 4,096 px | |
 | | engine-allocated canvas | ≤ 4,096 per axis and ≤ 16.7 M px; larger boxes clamp with a diagnostic | the corpus run reports clamp hits (expected 0) |
-| Realm | memory / stack | 64 MiB / 1 MiB | |
+| Realm | memory / stack | 64 MiB / 256 KiB (G1: 1 MiB escaped WASM as a host RangeError under Node 26; the clean ceiling is 320–384 KiB and host-dependent; re-measured in WKWebView at W3.R) | |
 | | top-level scripts of a view | 2,000 ms | `digitaldj` 3,938 lines in 7 files |
 | | `onload`, `onclose` | 1,000 ms | |
 | | handler, `_onchange`, timer, `ontimer` | 100 ms | |
@@ -2024,6 +2024,9 @@ any of these, the sidecar's `compat` mechanism can be promoted to a per-skin fai
 | R11 | `_onchange` is always queued, never synchronous; WMP's order is unverified | Keeps the membrane free of re-entry | Ledger counts handlers that read their own change mid-statement; revisit on evidence |
 | R12 | Webamp private APIs drift (phase 2) | Pinned version, one wrapper, boot self-test | `webamp 7` risk 2 |
 | R13 | Re-authored `res://` strings differ in wording from WMP | Microsoft text cannot ship | Only 6 distinct skins use them |
+| R19 | Slow-builtin interrupt latency: QuickJS polls its interrupt handler about every 10,000 interpreter ticks, and a builtin call is one tick however long it runs | Guards in the prelude wrap the size-proportional builtins (string search/repeat/pad/split/replace/case, array join/sort/indexOf/includes/slice/splice/concat/fill/reverse/flat, JSON.parse/stringify, RegExp exec/test and the Symbol.replace/split/match family) and throw before running once the dispatch is over budget; the loop then spins in cheap ticks and the real interrupt fires. Residual overshoot is about one builtin call (bounded by the 64 MiB memory cap, ~150 ms measured) | RG0 measured 0.8–2.2 s overshoot for `for(;;){'y'.repeat(1e5)}` and minutes for `indexOf` over 16 MiB without guards; phase 3 may build QuickJS with a smaller interrupt counter |
+| R21 | jpeg-js's own `maxMemoryUsageInMB` 256 guard rejects 4:4:4 JPEGs above about 12.5 MP that the 16.7 MP area cap and the probe accept (G1.F1 measured: 11.56 MP decodes, 12.96 MP is `image-corrupt`) | Corpus maximum is 8.3 MP; the decode fails closed with a diagnostic | Raise the guard or add a JPEG-specific area cap if a real skin needs it |
+| R20 | Assignment to a call expression (`eq.gainLevels(band) = v`) is a QuickJS parse error but a run-time error in JScript and V8 | The loader rewrites only statements QuickJS rejects with "invalid assignment left-hand side" into a call that throws `TypeError('Cannot assign to a function result')` at run time, one statement at a time, at most 32 per file, each logged as a `script-rewrite` diagnostic | 7 of 219 corpus scripts; without the rewrite each file would be lost whole |
 | R14 | WKWebView may not honour `'wasm-unsafe-eval'`, and Chromium cannot detect an in-app WASM failure | A strict CSP is worth trying | The re-pin gate boots the engine in the real app; fallback `'unsafe-eval'` in `script-src` only |
 | R15 | Contract drift between parallel Sonnet tasks | Waves are parallel by design | One Opus-owned `contracts.d.ts`; `tsc --checkJs` in every acceptance; Opus gate per wave |
 | R16 | Goldens are local-only (owner's fixture, pinned Chromium on this Mac) | Art cannot be shared | Manifest hashes make drift detectable; tag regeneration keeps the oracle reproducible after cutover |

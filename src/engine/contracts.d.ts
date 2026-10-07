@@ -36,6 +36,7 @@ export interface ZipEntry { name: string; key: string; method: 0 | 8; csize: num
   crc: number; offset: number }
 export interface ZipIndex { readonly entries: readonly ZipEntry[]; readonly diagnostics: Diagnostic[];
   read(e: ZipEntry): Uint8Array | null }                    // null = corrupt or over cap; never throws
+export interface ArchiveError extends Error { readonly name: 'ArchiveError'; readonly code: 'not-a-zip' | 'zip64' | 'multidisk' | 'archive-cap' }   // G1
 export type ReadZipFn = (bytes: Uint8Array, caps?: Partial<ZipCaps>) => ZipIndex;   // throws ArchiveError only for not-a-zip / archive caps
 export interface SkinVfs {
   readonly sha: string;                                     // SHA-256 hex of the archive bytes
@@ -66,7 +67,8 @@ export interface TagSchema { tag: string; kind: ElementKind; defaults: ReadonlyM
 export type ResolveTagFn = (tag: string) => TagSchema;
 export type AttrType = 'int' | 'float' | 'bool' | 'string' | 'color' | 'image' | 'handler' | 'cursor' | { enum: readonly string[] };
 export interface AttrSpec { name: string; type: AttrType; default: unknown; access: 'r' | 'rw' }
-export type AttrSpecFn = (kind: ElementKind, attr: string) => AttrSpec | undefined;
+export type AttrSpecFn = (kind: ElementKind, attr: string) => AttrSpec | undefined;   // never resolves host-only x- names
+export type AttrSpecForFn = (kind: ElementKind, attr: string, origin: Origin) => AttrSpec | undefined;   // G1: x- names resolve only for origin 'sidecar'; the builder and ElementModel.set use this
 export type AttrSource =
   | { kind: 'literal'; text: string }
   | { kind: 'jscript'; source: string }
@@ -77,6 +79,8 @@ export type AttrSource =
 export interface BindSegment { name: string; args?: Array<string | number | boolean> }
 export interface BindPath { root: string; segments: BindSegment[] }
 export type ClassifyValueFn = (kind: ElementKind, attr: string, raw: string) => AttrSource;
+export type ClassifyValueDiagFn = (kind: ElementKind, attr: string, raw: string) => { source: AttrSource; diagnostic: Diagnostic | null };   // G1: the builder uses this (misspelled binding prefixes, bad paths)
+export type ParseBindPathFn = (src: string) => BindPath | null;   // G1: the one wmpprop: grammar (wms/values.js); bind/paths.js parsePath delegates to it
 export type ParseColorFn = (s: string) => Rgb | 'none' | 'auto' | null;
 export type CoerceFn = (type: AttrType, v: unknown, prev: unknown) => unknown;   // U-20: invalid keeps prev
 
@@ -129,10 +133,14 @@ export interface ImageCaps { maxAxis: number; maxArea: number; maxGifFrames: num
 export interface RgbaImage { width: number; height: number; data: Uint8ClampedArray;
   indexed?: { palette: Uint8Array; indices: Uint8Array }; frames?: { data: Uint8ClampedArray; delayMs: number }[] }
 export type DecodeImageFn = (bytes: Uint8Array, caps?: Partial<ImageCaps>) => RgbaImage | null;
+export type DecodeImageWithDiagnosticsFn = (bytes: Uint8Array, caps?: Partial<ImageCaps>) => { image: RgbaImage | null; diagnostics: Diagnostic[] };   // G1: what executors call
 export interface KeySpec { transparency?: Rgb | 'auto' | null; clipping?: Rgb | 'auto' | null;
   hitKeyed: boolean; clipImage?: string }                   // clipImage = VFS ref of clippingImage
 export interface KeyedPlanes { width: number; height: number; rgba: Uint8ClampedArray;
-  paint: Uint8Array; hit: Uint8Array; clip: Uint8Array | null }   // 1 bit per pixel, row-major, LSB first
+  paint: Uint8Array; hit: Uint8Array; clip: Uint8Array | null;   // 1 bit per pixel, row-major, LSB first
+  // G1: clip bit 1 = inside the clip region (kept), 0 = clipped away; null = nothing clipped.
+  // Alpha-0 pixels are never keyed; 'auto' read from an alpha-0 (0,0) pixel means no key.
+  diagnostics?: Diagnostic[] }                              // G1: decode/keying warnings, carried to the image service
 export type KeyImageFn = (img: RgbaImage, spec: KeySpec, clipImg?: RgbaImage | null) => KeyedPlanes;
 export interface DecodeJob { bytes: Uint8Array; key: KeySpec; clipBytes?: Uint8Array }
 export interface DecodeExecutor { run(job: DecodeJob): Promise<KeyedPlanes | null> }   // null = missing
@@ -160,7 +168,7 @@ export interface RealmBudgets { scripts: number; load: number; handler: number; 
 export interface RealmOptions {
   viewKey: string;
   memoryLimitBytes: number;                                 // 64 MiB
-  maxStackBytes: number;                                    // 1 MiB
+  maxStackBytes: number;                                    // G1: 256 KiB; host-dependent (escapes WASM at 320-384 KiB under Node 26), re-measured in WKWebView at W3.R
   budgets: RealmBudgets;                                    // 2000, 1000, 100, 20, 1000 ms
   wallClock: () => number;                                  // real performance.now, captured at module load
   dispatcher: HostDispatcher;
@@ -219,6 +227,18 @@ export interface LedgerEntry { api: string; kind: 'stub' | 'denied' | 'unknown-m
 export interface Ledger { record(api: string, kind: LedgerEntry['kind'], detail?: string): void; entries(): LedgerEntry[] }
 export type CreateLedgerFn = (skinSha: string) => Ledger;
 export type WmplocConstantsFn = (opts?: { extras?: boolean }) => Record<string, number | string[]>;
+// G1: wmploc.js helpers consumed by W2.2 (script loading) and W2.3 (theme.loadString, attributes).
+export interface WmplocLibrary { id: number; install: 'before-scripts' | 'when-listed';
+  constants: Record<string, number | string[]>; source: string }
+export type ScriptEntry =
+  | { kind: 'script'; path: string; implicit?: boolean }
+  | { kind: 'library'; url: string; library: WmplocLibrary }
+  | { kind: 'unknown-res'; url: string };
+export type ParseScriptFileFn = (value: string | null | undefined, opts?: { stem?: string }) => ScriptEntry[];
+export type ScriptLibraryFn = (url: string, opts?: { extras?: boolean }) => WmplocLibrary | null;
+export type StringProblem = 'unresolved' | 'wrong-type' | 'unknown-id';
+export type LookupStringFn = (url: string) => { text: string; problem: StringProblem | null };
+export type ResolveStringAttributeFn = (attribute: string, value: string) => { value: string; problem: StringProblem | null };
 export type ResolveResFn = (url: string) => { module: 'wmploc'; type: string; id: number } | null;
 export type LoadStringFn = (url: string) => string;
 
@@ -233,6 +253,7 @@ export interface MediaState {
   volume: number;                                           // 0..100, or -1 when MPD has no mixer
   random: boolean; repeat: boolean; single: boolean; consume: boolean;
   song: SongInfo | null; queueLength: number; queueVersion: number;
+  queuePos: number | null;                                  // G1: MPD status.song (0-based), even when currentsong is empty
   bitrateKbps: number | null; error: string | null;
 }
 export interface MediaModel {
