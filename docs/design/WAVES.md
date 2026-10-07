@@ -1297,6 +1297,16 @@ G5 runs them with nothing else running.
 
 ## Wave 6: dogfood and cutover
 
+### W6.0 Keyed pixels carry RGB 0 · S · S
+
+- **Owns**: `src/engine/image/keying.js` and its tests under `tests/engine/image/`.
+- **Do**: E D3 rev 1.1. Every pixel whose alpha ends at 0 (keyed, clipped, or transparent at source)
+  gets RGB 0 as well. Update the "keep their RGB" comment. The 8-bit `{palette, indices}` side output
+  is unchanged.
+- **Acceptance**: `npm test -- tests/engine/image`; both strict Headspace checks (`--state
+  S1,S2,S2b,S3,S3b,S4 --dpr 1,2`) unchanged, because `putImageData` premultiplies; `npm run skinlab --
+  fixtures --area render`; `npm run check`.
+
 ### W6.1 Engine as the default · O · S
 
 - **Owns**: `src/app/mode.js` (default becomes `'engine'`; the legacy branch stays reachable through the

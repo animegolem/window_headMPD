@@ -5,7 +5,7 @@ engine/host seam, and the path to the agent-written theming language.
 
 | **STATUS**                         | **REVISION** | **LAST UPDATED** |
 |------------------------------------|--------------|------------------|
-| Ratified; phase 1 at G5 (owner items open) | 1.0 | 2026-10-07 |
+| Ratified; phase 1 at G5 (owner items open) | 1.1 | 2026-10-07 |
 
 > **WORKING PRODUCT STATEMENT**
 >
@@ -573,7 +573,10 @@ skin animation.
 
 **Position.** Our own pure-JS decoders for every format. Header-only probing provides layout sizes;
 caps are checked from headers before allocating; keying is per declaration in the same pass;
-decoding runs in a Worker in the app and inline in Node.
+decoding runs in a Worker in the app and inline in Node. **A pixel with alpha 0 carries RGB 0**
+(rev 1.1, Genga consult r1): keyed, clipped and transparent pixels are stored premultiplied-safe, so
+no later linear sample can fringe the key colour. The DOM path is unchanged, because `putImageData`
+premultiplies anyway. `keying.js` kept RGB until card W6.0.
 
 | Format | Implementation | Corpus facts behind it |
 |---|---|---|
@@ -2247,6 +2250,7 @@ a user story that rules it out. Initial theming stories, from wave 5:
 | A skin can never close or minimise its window unless the user just clicked or pressed a key. | self-dismissing skins | D6.5 |
 | The EQ slider always shows the whole-dB value the audio is actually using. | display/audio disagreement | 5F.4, parity D31 |
 | Clicks land where the skin is drawn and pass through where it is not. | paint/hit divergence | 5F.9, 5F.10, D2 |
+| The player never flashes the full frame more than three times a second. | photosensitive flashing | §15.6 (rev 1.1) |
 
 The full set goes to Astra as language user stories after the wave-5 commit.
 
@@ -2255,6 +2259,37 @@ The full set goes to Astra as language user stories after the wave-5 commit.
 MPD stays the server for phase 1 and 2, reached only through `MediaModel` (D6). Replacing it with
 our own C API server (parametric EQ, formally verified EQ math, a standalone "Winamp, but better")
 is under research in `docs/research/music-server/` (rev 1.0); nothing about it is ruled yet.
+
+### 15.6 Rendering consultation (Genga, round 1, rev 1.1)
+
+Source: `~/git/VampireOTP/.relay/inbox/skin-engine-consult-r1-genga.md` (2026-10-07, on `759d17b`).
+**Adopted at rev 1.1:**
+- A pixel with alpha 0 carries RGB 0 (D3; card W6.0).
+- Masks and hit planes are sets: never filtered, sampled nearest only, and the picker stays on the
+  CPU in skin px (already D2; now an explicit rule for any GPU renderer).
+- Photosensitivity law, as a user story (§15.4): the player never flashes the full frame more than
+  three times a second. Enforcement is a proposed oracle check on S6 and visualizer states.
+
+**Proposed for the GPU path (not ruled):**
+- *Two stages, one transform.* Stage A composites at skin px with integer maths into one image per
+  window (or per group that needs group opacity). Stage B presents once through one rational
+  transform s = zoom × DPR = p/q; every consumer maps a device pixel back by its centre,
+  `x_skin = floor((x_dev + ½) · q / p)`. The Rust shape path (`set_hit_mask`, `zoom: f64`) must share
+  that function or be cross-tested against it.
+- *Filter policy.* Integer s is nearest. Fractional s is nearest to `floor(s)`, then one linear step
+  ("sharp bilinear"), or zoom is snapped so s is an integer. The policy and s join the golden's key.
+- *GPUI specifics* (Genga, measured at zed `ea042f2`): per-sprite nearest sampling exists; sprite
+  quads must sit on integer device px; atlas tiles need padding for any linear sampling; keep the
+  BGRA8Unorm (gamma-space) framebuffer and pin the layer to sRGB.
+- *Budgets.* Group opacity (`alphaBlend` on a SUBVIEW or BUTTONGROUP) needs an offscreen target per
+  animated group; never upload pre-scaled art (16,384 px is also Metal's texture limit); upload a
+  CUSTOMSLIDER frame, not its strip; free CPU RGBA after upload and keep only the bit planes.
+- *Stage A as the language's IR.* The skin language emits a display list (keyed quads, masks, text
+  runs, in skin px) that every renderer consumes; the oracle compares stage A exactly against a CPU
+  reference and stage B per platform within bounds.
+- *One oracle format, seeded from skinlab's*, with Genga's frame checker as a second consumer, plus
+  tolerance entries (maximum channel delta, count over delta), stage-B key fields, laws, and
+  owner pins on the report page. Where the shared schema lives is the desk's call.
 
 ## 16. Core invariants  <!-- CONSTITUTIONAL -->
 
@@ -2655,6 +2690,14 @@ Phase 1 ends when every D10.9 criterion holds. Standing at rev 1.0:
    has no Tauri dependency), and I-10 in part. Each wants a checker or a test.
 9. **Per-wave Rust tests**: gates run `cargo test -p headcore`; the MPD argument guard tests in the app
    crate run only under a full `cargo test` (cutover, W6.2). Widen the per-wave run?
+10. **TEXT off the DOM** (rev 1.1, §15.6): scripts read `textWidth`, so a new text stack changes
+    behaviour, not only pixels. Needed before any non-DOM renderer: a pinned rasteriser at skin px and a
+    metrics service answering `textWidth` from the font's own tables.
+11. **One transform for paint and shape** (rev 1.1): the Rust shape takes `zoom: f64` while the
+    renderer scales in CSS; at a fractional zoom they can disagree by a pixel. Share one function or
+    cross-test them.
+12. **The shared oracle schema** (rev 1.1): where it lives and who drafts it (Genga offers to draft
+    with us).
 
 ## 20. Decision summary  <!-- CONSTITUTIONAL -->
 
@@ -3421,6 +3464,10 @@ Found by the rev 1.0 extraction. The ruling for each follows the list; "fixed in
     `a_line_break_in_an_argument_cannot_smuggle_a_second_command`), but the per-gate command is
     `cargo test --manifest-path src-tauri/Cargo.toml -p headcore` (W l.36-37, l.47), which does not run
     it; only W3.R and G3.F6 acceptance ran a plain `cargo test` in `src-tauri`.
+
+**Rev 1.1 additions.** A pixel with alpha 0 carries RGB 0 (D3; card W6.0). Masks and hit planes are
+never filtered on any renderer. The photosensitivity law is a user story (§15.4). The GPU-path
+proposals in §15.6 are not rulings.
 
 **Rev 1.0 rulings on the conflicts above.**
 
