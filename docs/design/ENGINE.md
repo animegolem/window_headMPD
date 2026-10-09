@@ -2291,6 +2291,9 @@ generated skin is a program, so it is graded, not admired:
 - **Golden fixtures that include the hard cases,** so every rule can be falsified.
 - **Controls proven able to fail:** every check has a mutant that it is shown to catch. The check,
   and the claim about what the check covers, are separate things, and both are tested.
+- **A control validates an instrument only against the failures the control itself contains.** A
+  clean positive fixture certifies nothing on its own: each grader check needs fixtures that
+  contain the failure modes it claims to detect (nodal, audiod SPEC §14.14 item 8).
 - **Palettes interpolate in OKLCH:**
   - take the shortest hue arc, with exact opposition broken by a property of the pair;
   - below chroma 1e-4, hue is not a quantity: near-greys must not sweep the hue wheel;
