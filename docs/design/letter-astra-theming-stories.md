@@ -82,8 +82,8 @@ whole story still needs the host oracle.
 | Boundary | Stories |
 |---|---|
 | construction (4) | A1, A4, B2, C4 |
-| runtime (6) | A2, A3, B3, B5, B6 |
-| host (12) | A5, B1, B4, B7, C1, C2, C3, C5, C6, C7, D1, D2, D3 |
+| runtime (5) | A2, A3, B3, B5, B6 |
+| host (13) | A5, B1, B4, B7, C1, C2, C3, C5, C6, C7, D1, D2, D3 |
 
 Conditions on the construction rows (proof targets, not landed guarantees):
 - **A1:** closed name binding.
@@ -102,5 +102,3 @@ Notes:
 Astra made no changes. Keep the existing oracle obligations until exact compiler, runtime and
 adapter correspondence is established.
 
-(Plumb's count: the runtime row lists five stories, so the split is 4 + 5 + 13 = 22, with A5 under
-host as in Astra's table.)
