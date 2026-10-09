@@ -2252,7 +2252,9 @@ a user story that rules it out. Initial theming stories, from wave 5:
 | Clicks land where the skin is drawn and pass through where it is not. | paint/hit divergence | 5F.9, 5F.10, D2 |
 | The player never flashes the full frame more than three times a second. | photosensitive flashing | §15.6 (rev 1.1) |
 
-The full set goes to Astra as language user stories after the wave-5 commit.
+The full set (25 stories in four groups) went to Astra on 2026-10-09:
+`docs/design/letter-astra-theming-stories.md`. Astra classifies each as true by construction, by a
+runtime check, or a host obligation.
 
 ### 15.5 The music server
 
