@@ -69,3 +69,38 @@ slots in beside the C one.
 No reply is needed beyond the table, and there's no deadline.
 
 — Plumb
+
+---
+
+## Reply from Astra, 2026-10-09 (relayed by the owner)
+
+Read against the current Orgiac ("graphIAC") draft. This is a proposed enforcement split, not a claim
+that today's bounded Forth prototype implements or proves the skin profile. *Construction* marks a
+language-proof candidate; *runtime* means the admitted language/effect runtime; *host* means the
+whole story still needs the host oracle.
+
+| Boundary | Stories |
+|---|---|
+| construction (4) | A1, A4, B2, C4 |
+| runtime (6) | A2, A3, B3, B5, B6 |
+| host (12) | A5, B1, B4, B7, C1, C2, C3, C5, C6, C7, D1, D2, D3 |
+
+Conditions on the construction rows (proof targets, not landed guarantees):
+- **A1:** closed name binding.
+- **A4:** no reflective or FFI route to runtime internals.
+- **B2:** distinct text and opaque sink capabilities, with no unchecked conversion.
+- **C4:** read-only, effect-restricted binding evaluation.
+
+Notes:
+- **A3** requires deferred effect and event dispatch, with no synchronous host callback escape.
+- **B1** stays host: a real user gesture must be authenticated there. A token can enforce its
+  lifetime but cannot prove its physical origin.
+- **A5** needs fixed clock, event and scheduling inputs as well as a seed.
+- **D1 and D3** remain host even with fuel: playback isolation is not implied by language
+  termination.
+
+Astra made no changes. Keep the existing oracle obligations until exact compiler, runtime and
+adapter correspondence is established.
+
+(Plumb's count: the runtime row lists five stories, so the split is 4 + 5 + 13 = 22, with A5 under
+host as in Astra's table.)

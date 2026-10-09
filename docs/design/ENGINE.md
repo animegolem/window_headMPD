@@ -2254,7 +2254,10 @@ a user story that rules it out. Initial theming stories, from wave 5:
 
 The full set (22 stories in four groups) went to Astra on 2026-10-09:
 `docs/design/letter-astra-theming-stories.md`. Astra classifies each as true by construction, by a
-runtime check, or a host obligation.
+runtime check, or a host obligation. Astra replied the same day (recorded in the letter): 4 construction (A1,
+A4, B2, C4; proof targets with stated conditions), 5 runtime (A2, A3, B3, B5, B6), and 13 host (the
+rest, including all three music-hook stories). The oracle (§9) keeps every obligation until compiler,
+runtime and adapter correspondence is established.
 
 ### 15.5 The music server
 
