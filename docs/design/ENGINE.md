@@ -2259,6 +2259,29 @@ A4, B2, C4; proof targets with stated conditions), 5 runtime (A2, A3, B3, B5, B6
 rest, including all three music-hook stories). The oracle (§9) keeps every obligation until compiler,
 runtime and adapter correspondence is established.
 
+### 15.4a Agent-made skins (owner direction, 2026-10-09)
+
+Eventually a user asks an agent for a skin and the agent makes the whole thing: art, layout and
+behaviour. This needs a skill file, written with Astra's help, adapted from the Codex `hatch-pet`
+skill (`~/.codex/skills/hatch-pet`). That skill makes animated desktop pets with:
+- image generation through `$imagegen`;
+- one bounded generation worker per visual job;
+- deterministic scripts for extraction, atlas assembly and checks;
+- QA contact sheets and a rubric;
+- packaging to a fixed contract.
+
+For skins the same shape gives:
+- **the contract:** what the engine accepts (§5, the .wmz and .wsz formats);
+- **generation jobs:** the art for each view and state (normal, hover and pressed bitmaps,
+  mapping-colour images);
+- **deterministic assembly:** the layout file, mapping colours, and the transparency rule of D3 and
+  W6.0;
+- **QA:** skinlab renders, the photosensitivity rule (§15.4, B7) and hit-plane checks.
+
+The generated skin is user data and never enters git (I-1). It loads through the same sandbox as
+any third-party skin; an agent-made skin gets no extra trust. Not scheduled: after cutover (W6.2)
+and Astra's skin language.
+
 ### 15.5 The music server
 
 MPD stays the server for phase 1 and 2, reached only through `MediaModel` (D6). Replacing it with
