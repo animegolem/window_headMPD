@@ -2282,6 +2282,22 @@ The generated skin is user data and never enters git (I-1). It loads through the
 any third-party skin; an agent-made skin gets no extra trust. Not scheduled: after cutover (W6.2)
 and Astra's skin language.
 
+The skill is built around a **grader**, not a prompt (nodal, termviz seat, 2026-10-09). A
+generated skin is a program, so it is graded, not admired:
+- **Deterministic, with no model in it:** does it parse; does it render (skinlab); are its regions
+  and alpha masks well-formed for any shape; are controls bound to real transport actions; does it
+  respond to audio (the legibility ratios, audiod SPEC §14.14); does it survive resize; does it
+  obey the flashing rule (B7).
+- **Golden fixtures that include the hard cases,** so every rule can be falsified.
+- **Controls proven able to fail:** every check has a mutant that it is shown to catch. The check,
+  and the claim about what the check covers, are separate things, and both are tested.
+- **Palettes interpolate in OKLCH:**
+  - take the shortest hue arc, with exact opposition broken by a property of the pair;
+  - below chroma 1e-4, hue is not a quantity: near-greys must not sweep the hue wheel;
+  - bake ramps into a table for real time.
+  The reference conversion is the estate's notan-palette/1 decoder (termviz `src/color.rs` and its
+  conformance vectors).
+
 ### 15.5 The music server
 
 MPD stays the server for phase 1 and 2, reached only through `MediaModel` (D6). Replacing it with
