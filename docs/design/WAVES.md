@@ -1307,6 +1307,13 @@ G5 runs them with nothing else running.
   S1,S2,S2b,S3,S3b,S4 --dpr 1,2`) unchanged, because `putImageData` premultiplies; `npm run skinlab --
   fixtures --area render`; `npm run check`.
 
+*W6.0 done 2026-10-09:*
+- `keying.js` zeroes RGB wherever alpha ends at 0; tests updated.
+- Image tests 292 of 292.
+- Strict Headspace checks pass in compat and faithful (12 comparisons and 2 gates each).
+- `fixtures --area render` passes 37 of 37, and `npm run check` is clean.
+- Note: the faithful run reports allow-list entry `D21-preset-title` as "absorbed nothing (stale?)". Review it at W6.2's re-bless.
+
 ### W6.1 Engine as the default · O · S
 
 - **Owns**: `src/app/mode.js` (default becomes `'engine'`; the legacy branch stays reachable through the

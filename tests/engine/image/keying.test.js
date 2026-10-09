@@ -63,10 +63,35 @@ describe('keyImage: none, explicit and auto keys', () => {
     expect(grid(keyImage(dark, { transparency: 'auto', hitKeyed: false }).paint, 3, 2)).toEqual(['001', '100']);
   });
 
-  it('keyed pixels keep their RGB and only lose alpha', () => {
+  it('keyed pixels end with RGB 0 and alpha 0 (D3 rev 1.1)', () => {
     const img = pic(['M.']);
     const out = keyImage(img, { transparency: MAGENTA, hitKeyed: true });
-    expect(Array.from(out.rgba.subarray(0, 4))).toEqual([255, 0, 255, 0]);
+    expect(Array.from(out.rgba.subarray(0, 4))).toEqual([0, 0, 0, 0]);
+    expect(Array.from(out.rgba.subarray(4, 8))).toEqual([90, 90, 90, 255]);
+  });
+
+  it('clipped, keyed and source-transparent pixels all end RGBA 0; opaque and partial pixels are unchanged', () => {
+    // M keyed, R clipped, 0 and - transparent at source, m and h partly transparent, W opaque
+    const img = pic(['MR0-mhW']);
+    const out = keyImage(img, { transparency: MAGENTA, clipping: RED, hitKeyed: true });
+    const px = (/** @type {number} */ i) => Array.from(out.rgba.subarray(i * 4, i * 4 + 4));
+    // m is magenta at alpha 128: a visible pixel whose RGB equals the key, so it is keyed too
+    for (const i of [0, 1, 2, 3, 4]) expect(px(i)).toEqual([0, 0, 0, 0]);
+    expect(px(5)).toEqual([90, 90, 90, 128]);
+    expect(px(6)).toEqual([255, 255, 255, 255]);
+    // with no keys, source-transparent pixels still lose their RGB and partial ones keep it
+    const plain = keyImage(img, { hitKeyed: false });
+    expect(Array.from(plain.rgba)).toEqual([
+      255, 0, 255, 255, 255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 255, 128, 90, 90, 90, 128, 255, 255, 255, 255,
+    ]);
+  });
+
+  it('zeroing RGB changes no plane: paint, hit and clip match the keyed alpha as before', () => {
+    const img = pic(['M.R-']);
+    const out = keyImage(img, { transparency: MAGENTA, clipping: RED, hitKeyed: true });
+    expect(grid(out.paint, 4, 1)).toEqual(['0100']);
+    expect(grid(out.hit, 4, 1)).toEqual(['1100']);
+    expect(grid(out.clip, 4, 1)).toEqual(['1101']);
   });
 
   it('the input is never changed and every call returns fresh arrays', () => {
@@ -78,7 +103,8 @@ describe('keyImage: none, explicit and auto keys', () => {
     expect(a.rgba).not.toBe(b.rgba);
     a.rgba[0] = 1;
     a.paint[0] = 255;
-    expect(b.rgba[0]).toBe(255);
+    expect(b.rgba[0]).toBe(0);
+    expect(b.rgba[3]).toBe(0);
     expect(b.paint[0]).not.toBe(255);
   });
 });

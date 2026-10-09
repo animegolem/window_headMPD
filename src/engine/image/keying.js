@@ -26,7 +26,9 @@
 //   - Each of those silent choices that costs the author something leaves a diagnostic on the result's
 //     `diagnostics` (G1): a missing clipping image, and an `auto` key whose pixel (0,0) is fully
 //     transparent. A keying with nothing to say has no `diagnostics` property at all.
-//   - Keyed and clipped pixels keep their RGB; only alpha changes.
+//   - A pixel whose alpha ends at 0 (keyed, clipped, or transparent at source) also ends with RGB 0
+//     (ENGINE D3 rev 1.1, 15.6), so a linear sampling or premultiplying GPU renderer cannot bleed a
+//     hidden colour as a fringe. Every other pixel, opaque or partly transparent, is unchanged.
 //
 // Planes are 1 bit per pixel, row-major, least significant bit first, no padding between rows:
 // pixel i = y * width + x is bit (i & 7) of byte (i >> 3), the layout of headcore::hit and the oracle's
@@ -116,6 +118,7 @@ export const keyImage = (img, spec, clipImg) => {
           keyed = false;
         }
       }
+      if (!visible) rgba[p] = rgba[p + 1] = rgba[p + 2] = 0;
       if (visible) {
         paint[i >> 3] |= 1 << (i & 7);
         hit[i >> 3] |= 1 << (i & 7);

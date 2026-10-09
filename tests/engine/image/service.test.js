@@ -118,7 +118,7 @@ describe('load and get through the inline executor', () => {
     const vfs = await vfsOf([['alpha.png', png]]);
     const svc = createImageService(vfs, createInlineExecutor(), recorder().log);
     const planes = /** @type {any} */ (await svc.load('alpha.png', { transparency: MAGENTA, hitKeyed: false }));
-    expect([...planes.rgba.slice(0, 12)]).toEqual([255, 0, 255, 0, 10, 20, 30, 128, 1, 2, 3, 0]);
+    expect([...planes.rgba.slice(0, 12)]).toEqual([0, 0, 0, 0, 10, 20, 30, 128, 0, 0, 0, 0]);
     expect([bit(planes.paint, 0), bit(planes.paint, 1), bit(planes.paint, 2)]).toEqual([0, 1, 0]);
   });
 
